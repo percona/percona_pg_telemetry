@@ -1,0 +1,78 @@
+name: postgresql-12-build
+on: [push]
+
+jobs:
+  build:
+    name: pg-12-build-test
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Clone postgres repository
+        uses: actions/checkout@v3
+        with:
+          repository: 'postgres/postgres'
+          path: postgres
+          ref: 'REL_12_STABLE'
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt purge postgresql-client-common postgresql-common \
+           postgresql postgresql*
+          sudo apt-get install -y libreadline6-dev systemtap-sdt-dev \
+           zlib1g-dev libssl-dev libpam0g-dev bison flex \
+           libipc-run-perl docbook-xsl docbook-xsl libxml2 libxml2-utils \
+           libxml2-dev libxslt-dev xsltproc libkrb5-dev libldap2-dev \
+           libsystemd-dev gettext tcl-dev libperl-dev pkg-config clang-11 \
+           llvm-11 llvm-11-dev libselinux1-dev python3-dev uuid-dev liblz4-dev
+          sudo rm -rf /var/lib/postgresql /var/log/postgresql /etc/postgresql \
+           /usr/lib/postgresql /usr/include/postgresql /usr/share/postgresql \
+           /etc/postgresql
+          sudo rm -f /usr/bin/pg_config
+
+      - name: Build postgres
+        run: |
+          export PATH="/opt/pgsql/bin:$PATH"
+          ./configure                                 \
+              '--enable-debug'                        \
+              'CFLAGS=-O0 -g3'                        \
+              --enable-cassert                        \
+              --enable-tap-tests                      \
+              --without-icu
+           make -j4
+        working-directory: postgres
+
+      - name: Clone percona_telemetry repository
+        uses: actions/checkout@v3
+        with:
+          path: 'postgres/contrib/percona_telemetry'
+
+      - name: Build percona_telemetry
+        run: |
+          make
+          sudo make install
+        working-directory: postgres/contrib/percona_telemetry
+
+      - name: Run percona_telemetry regression
+        run: |
+          PT_DEBUG=1 make check
+        working-directory: postgres/contrib/percona_telemetry
+
+      - name: Upload logs on fail
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@v3
+        with:
+          name: Regressions diff and postgresql log
+          path: |
+            postgres/contrib/percona_telemetry/regression.diffs
+            postgres/contrib/percona_telemetry/regression.out
+            postgres/contrib/percona_telemetry/logfile
+            postgres/contrib/percona_telemetry/t/results/
+            postgres/contrib/percona_telemetry/tmp_check/log/
+            !postgres/contrib/percona_telemetry/tmp_check/**/archives/*
+            !postgres/contrib/percona_telemetry/tmp_check/**/backup/*
+            !postgres/contrib/percona_telemetry/tmp_check/**/pgdata/*
+            !postgres/contrib/percona_telemetry/tmp_check/**/archives/
+            !postgres/contrib/percona_telemetry/tmp_check/**/backup/
+            !postgres/contrib/percona_telemetry/tmp_check/**/pgdata/
+          if-no-files-found: warn
+          retention-days: 3
