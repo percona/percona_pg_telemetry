@@ -1,0 +1,34 @@
+--
+-- basic sanity
+--
+CREATE  EXTENSION percona_telemetry;
+-- Sleep so that waiting on agent becomes true
+SELECT  pg_sleep(3);
+ pg_sleep 
+----------
+ 
+(1 row)
+
+SELECT  name
+FROM    pg_settings
+WHERE   name LIKE 'percona_telemetry.%';
+           name            
+---------------------------
+ percona_telemetry.enabled
+(1 row)
+
+SELECT  percona_telemetry_version();
+ percona_telemetry_version 
+---------------------------
+ 1.0
+(1 row)
+
+SELECT  regexp_replace(regexp_replace(latest_output_filename, '\d{11,}', '<INSTANCE ID>', 'g'), '\d{6,}', '<TIMESTAMP>', 'g') AS latest_output_filename
+        , pt_enabled
+FROM    percona_telemetry_status();
+                              latest_output_filename                              | pt_enabled 
+----------------------------------------------------------------------------------+------------
+ /usr/local/percona/telemetry/pg/percona_telemetry-<INSTANCE ID>-<TIMESTAMP>.json | t
+(1 row)
+
+DROP    EXTENSION percona_telemetry;
