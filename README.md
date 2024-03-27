@@ -34,9 +34,10 @@ You can find the configuration parameters of the `percona_telemetry` extension i
 
 4. `percona_telemetry.files_to_keep`
 
-  * Default: true
-  * Unit: boolean
-  * When set to `false`, the leader process terminates when the configuration is read.
+  * Default: 7
+  * Unit: Integer
+  * It forces the extension to maintain upto this number of files. Older files will get
+    removed and new files will be created.
 
 > **NOTE** GUCs 2 - 4 are only visible if environment variable PT_DEBUG is set. This is prevent users in production environment to change these variables which are only for testing purposes.
 
