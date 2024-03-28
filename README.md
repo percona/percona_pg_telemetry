@@ -60,7 +60,7 @@ You can enable `percona_telemetry` when your `postgresql` instance is not runnin
 
 `percona_telemetry` needs to be loaded at the start time. The extension requires additional shared memory; therefore,  add the `percona_telemetry` value for the `shared_preload_libraries` parameter and restart the `postgresql` instance.
 
-Use the [ALTER SYSTEM](https://www.postgresql.org/docs/current/sql-altersystem.html)command from `psql` terminal to modify the `shared_preload_libraries` parameter.
+Use the [ALTER SYSTEM](https://www.postgresql.org/docs/current/sql-altersystem.html) command from `psql` terminal to modify the `shared_preload_libraries` parameter.
 
 ```sql
 ALTER SYSTEM SET shared_preload_libraries = 'percona_telemetry';
