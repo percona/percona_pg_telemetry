@@ -52,6 +52,7 @@ HAVING  COUNT(*) = (
                                 )
                             + CAST(NOT EXISTS (SELECT * FROM pg_settings where name like '%pg_telemetry_folder') AS INTEGER)
                 );
+-- Databases count will fail if you have any preexisting databases other than the standard template1 and postgres
 
 SELECT  'matches' AS databases_count_calc
 FROM    pg_database
@@ -60,6 +61,7 @@ HAVING  COUNT(*) = (
                     SELECT  json_array_length(read_json_file()::JSON->'databases')
                             + CAST(NOT EXISTS (SELECT * FROM pg_settings where name like '%pg_telemetry_folder') AS INTEGER)
                 );
+-- Databases count will fail if you have any preexisting databases other than the standard template1 and postgres
 
 DROP EXTENSION percona_telemetry;
 DROP FUNCTION read_json_file;

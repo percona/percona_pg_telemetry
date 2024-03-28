@@ -70,6 +70,7 @@ HAVING  COUNT(*) = (
  matches
 (1 row)
 
+-- Databases count will fail if you have any preexisting databases other than the standard template1 and postgres
 SELECT  'matches' AS databases_count_calc
 FROM    pg_database
 WHERE   datallowconn = true
@@ -82,5 +83,6 @@ HAVING  COUNT(*) = (
  matches
 (1 row)
 
+-- Databases count will fail if you have any preexisting databases other than the standard template1 and postgres
 DROP EXTENSION percona_telemetry;
 DROP FUNCTION read_json_file;
