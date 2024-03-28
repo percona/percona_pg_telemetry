@@ -92,10 +92,10 @@ To build `percona_telemetry` from source code, you require the following:
 * postgresql-devel | postgresql-server-dev-all
 
 
-You can download the source code of the latest release of `percona_telemetry` from [the releases page on GitHub](https://github.com/EngineeredVirus/percona_telemetry/releases) or using git:
+You can download the source code of the latest release of `percona_telemetry` from [the releases page on GitHub](https://github.com/Percona-Lab/pg_percona_telemetry/releases) or using git:
 
 ```
-git clone git://github.com/EngineeredVirus/percona_telemetry.git
+git clone git://github.com/Percona-Lab/pg_percona_telemetry.git
 ```
 
 Compile and install the extension
