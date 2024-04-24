@@ -274,7 +274,7 @@ validate_dir(char *folder_path)
     {
         ereport(LOG,
                 (errcode_for_file_access(),
-                 errmsg("percont_telemetry.pg_telemetry_folder \"%s\" is not set to a writeable folder or the folder does not exist.", folder_path)));
+                 errmsg("percona_telemetry.pg_telemetry_folder \"%s\" is not set to a writeable folder or the folder does not exist.", folder_path)));
 
         PT_WORKER_EXIT(PT_FILE_ERROR);
     }
