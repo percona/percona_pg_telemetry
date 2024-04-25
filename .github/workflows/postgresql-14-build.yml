@@ -7,7 +7,7 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - name: Clone postgres repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           repository: 'postgres/postgres'
           path: postgres
@@ -42,7 +42,7 @@ jobs:
         working-directory: postgres
 
       - name: Clone percona_telemetry repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           path: 'postgres/contrib/percona_telemetry'
 
