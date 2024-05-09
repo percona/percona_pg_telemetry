@@ -162,7 +162,7 @@ generate_filename(char *filename)
     time(&currentTime);
     pg_snprintf(f_name, MAXPGPATH, "%s-%lu-%ld.json", PT_FILENAME_BASE, system_id, currentTime);
 
-    join_path_components(filename, ptss->pg_telemetry_folder, f_name);
+    join_path_components(filename, ptss->telemetry_path, f_name);
 
     return filename;
 }
@@ -229,22 +229,22 @@ cleaup_telemetry_dir(void)
     char json_file_id[MAXPGPATH];
     int file_id_len;
 
-    validate_dir(ptss->pg_telemetry_folder);
+    validate_dir(ptss->telemetry_path);
 
-    d = AllocateDir(ptss->pg_telemetry_folder);
+    d = AllocateDir(ptss->telemetry_path);
 
     if (d == NULL)
     {
         ereport(ERROR,
                         (errcode_for_file_access(),
                             errmsg("could not open percona telemetry directory \"%s\": %m",
-                                        ptss->pg_telemetry_folder)));
+                                        ptss->telemetry_path)));
     }
 
     pg_snprintf(json_file_id, sizeof(json_file_id), "%s-%lu", PT_FILENAME_BASE, system_id);
     file_id_len = strlen(json_file_id);
 
-    while ((de = ReadDir(d, ptss->pg_telemetry_folder)) != NULL)
+    while ((de = ReadDir(d, ptss->telemetry_path)) != NULL)
     {
         if (strncmp(json_file_id, de->d_name, file_id_len) == 0)
         {
@@ -256,7 +256,7 @@ cleaup_telemetry_dir(void)
 }
 
 /*
- * pg_telemetry_folder
+ * telemetry_path
  */
 bool
 validate_dir(char *folder_path)
@@ -359,8 +359,8 @@ pt_shmem_init(void)
         uint64 system_id = GetSystemIdentifier();
 
         /* Set paths */
-        strncpy(ptss->pg_telemetry_folder, t_folder, MAXPGPATH);
-        pg_snprintf(ptss->dbtemp_filepath, MAXPGPATH, "%s/%s-%lu.temp", ptss->pg_telemetry_folder, PT_FILENAME_BASE, system_id);
+        strncpy(ptss->telemetry_path, t_folder, MAXPGPATH);
+        pg_snprintf(ptss->dbtemp_filepath, MAXPGPATH, "%s/%s-%lu.temp", ptss->telemetry_path, PT_FILENAME_BASE, system_id);
 
         /* Let's be optimistic here. No error code and no file currently being written. */
         ptss->error_code = PT_SUCCESS;
