@@ -1,0 +1,15 @@
+# Object files
+*.o
+*.ko
+*.obj
+*.elf
+
+## IDE
+.idea
+
+## DS_Store
+*.DS_Store
+
+## .vscode
+.vscode/
+.vscode/*
