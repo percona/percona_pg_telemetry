@@ -20,7 +20,7 @@ You can find the configuration parameters of the `percona_telemetry` extension i
   * Unit: boolean
   * When set to `false`, the leader process terminates when the configuration is read.
 
-2. `percona_telemetry.pg_telemetry_folder`
+2. `percona_telemetry.path`
 
   * Default: /usr/local/percona/telemetry/pg
 
@@ -39,7 +39,7 @@ You can find the configuration parameters of the `percona_telemetry` extension i
   * It forces the extension to maintain upto this number of files. Older files will get
     removed and new files will be created.
 
-> **NOTE** GUCs 2 - 4 are only visible if environment variable PT_DEBUG is set. This is prevent users in production environment to change these variables which are only for testing purposes.
+> **NOTE** GUCs 3 - 4 are only visible if environment variable PT_DEBUG is set. This is prevent users in production environment to change these variables which are only for testing purposes.
 
 #### Functions
 

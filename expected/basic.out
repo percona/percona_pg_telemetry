@@ -16,7 +16,7 @@ WHERE   name LIKE 'percona_telemetry.%';
 ---------------------------------------
  percona_telemetry.enabled
  percona_telemetry.files_to_keep
- percona_telemetry.pg_telemetry_folder
+ percona_telemetry.path
  percona_telemetry.scrape_interval
 (4 rows)
 

@@ -34,7 +34,7 @@ max_val    | 100
 boot_val   | 7
 reset_val  | 7
 -[ RECORD 3 ]-------------------------------------------------
-name       | percona_telemetry.pg_telemetry_folder
+name       | percona_telemetry.path
 setting    | .
 unit       | 
 short_desc | Directory path for writing database info file(s)

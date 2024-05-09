@@ -274,7 +274,7 @@ validate_dir(char *folder_path)
     {
         ereport(LOG,
                 (errcode_for_file_access(),
-                 errmsg("percona_telemetry.pg_telemetry_folder \"%s\" is not set to a writeable folder or the folder does not exist.", folder_path)));
+                 errmsg("percona_telemetry.path \"%s\" is not set to a writeable folder or the folder does not exist.", folder_path)));
 
         PT_WORKER_EXIT(PT_FILE_ERROR);
     }
@@ -396,21 +396,21 @@ init_guc(void)
                              NULL,
                              NULL);
 
+    /* telemetry files path */
+    DefineCustomStringVariable("percona_telemetry.path",
+                            "Directory path for writing database info file(s)",
+                            NULL,
+                            &t_folder,
+                            PT_DEFAULT_FOLDER_PATH,
+                            PGC_SIGHUP,
+                            0,
+                            NULL,
+                            NULL,
+                            NULL);
+
     env = getenv("PT_DEBUG");
     if (env != NULL)
     {
-        /* file path */
-        DefineCustomStringVariable("percona_telemetry.pg_telemetry_folder",
-                                "Directory path for writing database info file(s)",
-                                NULL,
-                                &t_folder,
-                                PT_DEFAULT_FOLDER_PATH,
-                                PGC_SIGHUP,
-                                0,
-                                NULL,
-                                NULL,
-                                NULL);
-
         /* scan time interval for the main launch process */
         DefineCustomIntVariable("percona_telemetry.scrape_interval",
                                 "Data scrape interval",
