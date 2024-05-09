@@ -15,7 +15,8 @@ WHERE   name LIKE 'percona_telemetry.%';
            name            
 ---------------------------
  percona_telemetry.enabled
-(1 row)
+ percona_telemetry.path
+(2 rows)
 
 SELECT  percona_telemetry_version();
  percona_telemetry_version 
