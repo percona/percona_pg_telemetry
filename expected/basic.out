@@ -12,8 +12,8 @@ SELECT  pg_sleep(3);
 SELECT  name
 FROM    pg_settings
 WHERE   name LIKE 'percona_telemetry.%';
-                 name                  
--------------------------------------
+               name                
+-----------------------------------
  percona_telemetry.enabled
  percona_telemetry.files_to_keep
  percona_telemetry.path
