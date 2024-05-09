@@ -13,7 +13,7 @@ SELECT  name
 FROM    pg_settings
 WHERE   name LIKE 'percona_telemetry.%';
                  name                  
----------------------------------------
+-------------------------------------
  percona_telemetry.enabled
  percona_telemetry.files_to_keep
  percona_telemetry.path
