@@ -5,8 +5,8 @@ CREATE EXTENSION percona_pg_telemetry;
 SELECT application_name, backend_type, (backend_start IS NOT NULL) AS backend_started
 FROM pg_stat_activity
 WHERE application_name = 'percona_pg_telemetry';
- application_name  |        backend_type        | backend_started 
--------------------+----------------------------+-----------------
+   application_name   |         backend_type          | backend_started 
+----------------------+-------------------------------+-----------------
  percona_pg_telemetry | percona_pg_telemetry launcher | t
 (1 row)
 
@@ -15,7 +15,7 @@ SELECT name, setting, unit, short_desc, min_val, max_val, boot_val, reset_val
 FROM pg_settings
 WHERE name LIKE 'percona_pg_telemetry.%'
 ORDER BY name;
--[ RECORD 1 ]-------------------------------------------------
+-[ RECORD 1 ]----------------------------------------------------
 name       | percona_pg_telemetry.enabled
 setting    | on
 unit       | 
@@ -42,8 +42,8 @@ SELECT pg_sleep(2);
 SELECT application_name, backend_type, (backend_start IS NOT NULL) AS backend_started
 FROM pg_stat_activity
 WHERE application_name = 'percona_pg_telemetry';
- application_name  |        backend_type        | backend_started 
--------------------+----------------------------+-----------------
+   application_name   |         backend_type          | backend_started 
+----------------------+-------------------------------+-----------------
  percona_pg_telemetry | percona_pg_telemetry launcher | t
 (1 row)
 

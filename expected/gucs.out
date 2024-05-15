@@ -5,8 +5,8 @@ CREATE EXTENSION percona_pg_telemetry;
 SELECT application_name, backend_type, (backend_start IS NOT NULL) AS backend_started
 FROM pg_stat_activity
 WHERE application_name = 'percona_pg_telemetry';
- application_name  |        backend_type        | backend_started 
--------------------+----------------------------+-----------------
+   application_name   |         backend_type          | backend_started 
+----------------------+-------------------------------+-----------------
  percona_pg_telemetry | percona_pg_telemetry launcher | t
 (1 row)
 
@@ -15,7 +15,7 @@ SELECT name, setting, unit, short_desc, min_val, max_val, boot_val, reset_val
 FROM pg_settings
 WHERE name LIKE 'percona_pg_telemetry.%'
 ORDER BY name;
--[ RECORD 1 ]-------------------------------------------------
+-[ RECORD 1 ]----------------------------------------------------
 name       | percona_pg_telemetry.enabled
 setting    | on
 unit       | 
@@ -24,7 +24,7 @@ min_val    |
 max_val    | 
 boot_val   | on
 reset_val  | on
--[ RECORD 2 ]-------------------------------------------------
+-[ RECORD 2 ]----------------------------------------------------
 name       | percona_pg_telemetry.files_to_keep
 setting    | 7
 unit       | 
@@ -33,7 +33,7 @@ min_val    | 1
 max_val    | 100
 boot_val   | 7
 reset_val  | 7
--[ RECORD 3 ]-------------------------------------------------
+-[ RECORD 3 ]----------------------------------------------------
 name       | percona_pg_telemetry.pg_telemetry_folder
 setting    | .
 unit       | 
@@ -42,7 +42,7 @@ min_val    |
 max_val    | 
 boot_val   | /usr/local/percona/telemetry/pg
 reset_val  | .
--[ RECORD 4 ]-------------------------------------------------
+-[ RECORD 4 ]----------------------------------------------------
 name       | percona_pg_telemetry.scrape_interval
 setting    | 1
 unit       | s
@@ -69,8 +69,8 @@ SELECT pg_sleep(2);
 SELECT application_name, backend_type, (backend_start IS NOT NULL) AS backend_started
 FROM pg_stat_activity
 WHERE application_name = 'percona_pg_telemetry';
- application_name  |        backend_type        | backend_started 
--------------------+----------------------------+-----------------
+   application_name   |         backend_type          | backend_started 
+----------------------+-------------------------------+-----------------
  percona_pg_telemetry | percona_pg_telemetry launcher | t
 (1 row)
 
