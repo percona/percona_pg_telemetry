@@ -1,5 +1,5 @@
 comment = 'Extension for Percona telemetry data collection'
 default_version = '1.0'
-module_pathname = '$libdir/percona_telemetry'
+module_pathname = '$libdir/percona_pg_telemetry'
 relocatable = true
 

@@ -41,21 +41,21 @@ jobs:
            make -j4
         working-directory: postgres
 
-      - name: Clone percona_telemetry repository
+      - name: Clone percona_pg_telemetry repository
         uses: actions/checkout@v4
         with:
-          path: 'postgres/contrib/percona_telemetry'
+          path: 'postgres/contrib/percona_pg_telemetry'
 
-      - name: Build percona_telemetry
+      - name: Build percona_pg_telemetry
         run: |
           make
           sudo make install
-        working-directory: postgres/contrib/percona_telemetry
+        working-directory: postgres/contrib/percona_pg_telemetry
 
-      - name: Run percona_telemetry regression
+      - name: Run percona_pg_telemetry regression
         run: |
           PT_DEBUG=1 make check
-        working-directory: postgres/contrib/percona_telemetry
+        working-directory: postgres/contrib/percona_pg_telemetry
 
       - name: Upload logs on fail
         if: ${{ failure() }}
@@ -63,16 +63,16 @@ jobs:
         with:
           name: Regressions diff and postgresql log
           path: |
-            postgres/contrib/percona_telemetry/regression.diffs
-            postgres/contrib/percona_telemetry/regression.out
-            postgres/contrib/percona_telemetry/logfile
-            postgres/contrib/percona_telemetry/t/results/
-            postgres/contrib/percona_telemetry/tmp_check/log/
-            !postgres/contrib/percona_telemetry/tmp_check/**/archives/*
-            !postgres/contrib/percona_telemetry/tmp_check/**/backup/*
-            !postgres/contrib/percona_telemetry/tmp_check/**/pgdata/*
-            !postgres/contrib/percona_telemetry/tmp_check/**/archives/
-            !postgres/contrib/percona_telemetry/tmp_check/**/backup/
-            !postgres/contrib/percona_telemetry/tmp_check/**/pgdata/
+            postgres/contrib/percona_pg_telemetry/regression.diffs
+            postgres/contrib/percona_pg_telemetry/regression.out
+            postgres/contrib/percona_pg_telemetry/logfile
+            postgres/contrib/percona_pg_telemetry/t/results/
+            postgres/contrib/percona_pg_telemetry/tmp_check/log/
+            !postgres/contrib/percona_pg_telemetry/tmp_check/**/archives/*
+            !postgres/contrib/percona_pg_telemetry/tmp_check/**/backup/*
+            !postgres/contrib/percona_pg_telemetry/tmp_check/**/pgdata/*
+            !postgres/contrib/percona_pg_telemetry/tmp_check/**/archives/
+            !postgres/contrib/percona_pg_telemetry/tmp_check/**/backup/
+            !postgres/contrib/percona_pg_telemetry/tmp_check/**/pgdata/
           if-no-files-found: warn
           retention-days: 3

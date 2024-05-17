@@ -1,6 +1,6 @@
 /*-------------------------------------------------------------------------
  *
- * percona_telemetry.h
+ * percona_pg_telemetry.h
  *      Collect telemetry information for the database cluster.
  *
  * Portions Copyright © 2018-2024, Percona LLC and/or its affiliates
@@ -10,12 +10,12 @@
  * Portions Copyright (c) 1994, The Regents of the University of California
  *
  * IDENTIFICATION
- *    contrib/percona_telemetry/percona_telemetry.h
+ *    contrib/percona_pg_telemetry/percona_pg_telemetry.h
  *
  *-------------------------------------------------------------------------
  */
-#ifndef __PG_PERCONA_TELEMETRY_H__
-#define __PG_PERCONA_TELEMETRY_H__
+#ifndef __PERCONA_PG_TELEMETRY_H__
+#define __PERCONA_PG_TELEMETRY_H__
 
 #include "miscadmin.h"
 #include "access/xact.h"
@@ -78,7 +78,7 @@ typedef struct PTSharedState
     if (IsTransactionBlock())                   \
         CommitTransactionCommand();             \
     if (e_code != PT_SUCCESS)                   \
-        ereport(LOG, (errmsg("percona_telemetry bgworker exiting with error_code = %d", e_code)));    \
+        ereport(LOG, (errmsg("percona_pg_telemetry bgworker exiting with error_code = %d", e_code)));    \
     proc_exit(0);                               \
 }
 

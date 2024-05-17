@@ -4884,7 +4884,7 @@
                 "value": [
                   {
                     "key": "name",
-                    "value": "percona_telemetry.enabled"
+                    "value": "percona_pg_telemetry.enabled"
                   },
                   {
                     "key": "unit",
@@ -4909,7 +4909,7 @@
                 "value": [
                   {
                     "key": "name",
-                    "value": "percona_telemetry.files_to_keep"
+                    "value": "percona_pg_telemetry.files_to_keep"
                   },
                   {
                     "key": "unit",
@@ -4934,7 +4934,7 @@
                 "value": [
                   {
                     "key": "name",
-                    "value": "percona_telemetry.scrape_interval"
+                    "value": "percona_pg_telemetry.scrape_interval"
                   },
                   {
                     "key": "unit",
@@ -7430,7 +7430,7 @@
                       },
                       {
                         "key": "extension_name",
-                        "value": "percona_telemetry"
+                        "value": "percona_pg_telemetry"
                       }
                     ]
                   }

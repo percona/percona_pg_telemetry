@@ -1,5 +1,5 @@
 #include "pt_json.h"
-#include "percona_telemetry.h"
+#include "percona_pg_telemetry.h"
 
 #include <sys/stat.h>
 

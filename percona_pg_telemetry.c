@@ -30,7 +30,7 @@
 #include "utils/syscache.h"
 #include "utils/snapmgr.h"
 
-#include "percona_telemetry.h"
+#include "percona_pg_telemetry.h"
 #include "pt_json.h"
 
 #if PG_VERSION_NUM >= 130000
@@ -49,15 +49,15 @@ PG_MODULE_MAGIC;
 
 /* General defines */
 #define PT_BUILD_VERSION    "1.0"
-#define PT_FILENAME_BASE    "percona_telemetry"
+#define PT_FILENAME_BASE    "percona_pg_telemetry"
 
 /* Init and exported functions */
 void _PG_init(void);
-PGDLLEXPORT void percona_telemetry_main(Datum);
-PGDLLEXPORT void percona_telemetry_worker(Datum);
+PGDLLEXPORT void percona_pg_telemetry_main(Datum);
+PGDLLEXPORT void percona_pg_telemetry_worker(Datum);
 
-PG_FUNCTION_INFO_V1(percona_telemetry_status);
-PG_FUNCTION_INFO_V1(percona_telemetry_version);
+PG_FUNCTION_INFO_V1(percona_pg_telemetry_status);
+PG_FUNCTION_INFO_V1(percona_pg_telemetry_version);
 
 
 /* Internal init, shared memeory and signal functions */
@@ -146,7 +146,7 @@ _PG_init(void)
 static void
 start_leader(void)
 {
-    setup_background_worker("percona_telemetry_main", "percona_telemetry launcher", "percona_telemetry launcher", InvalidOid, 0);
+    setup_background_worker("percona_pg_telemetry_main", "percona_pg_telemetry launcher", "percona_pg_telemetry launcher", InvalidOid, 0);
 }
 
 /*
@@ -274,7 +274,7 @@ validate_dir(char *folder_path)
     {
         ereport(LOG,
                 (errcode_for_file_access(),
-                 errmsg("percona_telemetry.path \"%s\" is not set to a writeable folder or the folder does not exist.", folder_path)));
+                 errmsg("percona_pg_telemetry.path \"%s\" is not set to a writeable folder or the folder does not exist.", folder_path)));
 
         PT_WORKER_EXIT(PT_FILE_ERROR);
     }
@@ -283,10 +283,10 @@ validate_dir(char *folder_path)
 }
 
 /*
- * Select the status of percona_telemetry.
+ * Select the status of percona_pg_telemetry.
  */
 Datum
-percona_telemetry_status(PG_FUNCTION_ARGS)
+percona_pg_telemetry_status(PG_FUNCTION_ARGS)
 {
 #define PT_STATUS_COLUMN_COUNT  2
 
@@ -321,10 +321,10 @@ percona_telemetry_status(PG_FUNCTION_ARGS)
 }
 
 /*
- * Select the version of percona_telemetry.
+ * Select the version of percona_pg_telemetry.
  */
 Datum
-percona_telemetry_version(PG_FUNCTION_ARGS)
+percona_pg_telemetry_version(PG_FUNCTION_ARGS)
 {
 	PG_RETURN_TEXT_P(cstring_to_text(PT_BUILD_VERSION));
 }
@@ -353,7 +353,7 @@ pt_shmem_init(void)
 
     LWLockAcquire(AddinShmemInitLock, LW_EXCLUSIVE);
 
-    ptss = (PTSharedState *) ShmemInitStruct("percona_telemetry shared state", sizeof(PTSharedState), &found);
+    ptss = (PTSharedState *) ShmemInitStruct("percona_pg_telemetry shared state", sizeof(PTSharedState), &found);
     if (!found)
     {
         uint64 system_id = GetSystemIdentifier();
@@ -385,8 +385,8 @@ init_guc(void)
     char       *env;
 
     /* is the extension enabled? */
-    DefineCustomBoolVariable("percona_telemetry.enabled",
-                             "Enable or disable the percona_telemetry extension",
+    DefineCustomBoolVariable("percona_pg_telemetry.enabled",
+                             "Enable or disable the percona_pg_telemetry extension",
                              NULL,
                              &telemetry_enabled,
                              true,
@@ -397,7 +397,7 @@ init_guc(void)
                              NULL);
 
     /* telemetry files path */
-    DefineCustomStringVariable("percona_telemetry.path",
+    DefineCustomStringVariable("percona_pg_telemetry.path",
                             "Directory path for writing database info file(s)",
                             NULL,
                             &t_folder,
@@ -412,7 +412,7 @@ init_guc(void)
     if (env != NULL)
     {
         /* scan time interval for the main launch process */
-        DefineCustomIntVariable("percona_telemetry.scrape_interval",
+        DefineCustomIntVariable("percona_pg_telemetry.scrape_interval",
                                 "Data scrape interval",
                                 NULL,
                                 &scrape_interval,
@@ -426,7 +426,7 @@ init_guc(void)
                                 NULL);
 
         /* Number of files to keep */
-        DefineCustomIntVariable("percona_telemetry.files_to_keep",
+        DefineCustomIntVariable("percona_pg_telemetry.files_to_keep",
                                 "Number of JSON files to keep for this instance.",
                                 NULL,
                                 &files_to_keep,
@@ -441,7 +441,7 @@ init_guc(void)
     }
 
 #if PG_VERSION_NUM >= 150000
-    MarkGUCPrefixReserved("percona_telemetry");
+    MarkGUCPrefixReserved("percona_pg_telemetry");
 #endif
 }
 
@@ -463,7 +463,7 @@ setup_background_worker(const char *bgw_function_name, const char *bgw_name, con
     worker.bgw_flags = BGWORKER_SHMEM_ACCESS | BGWORKER_BACKEND_DATABASE_CONNECTION;
     worker.bgw_start_time = BgWorkerStart_RecoveryFinished;
 	worker.bgw_restart_time = BGW_NEVER_RESTART;
-    strcpy(worker.bgw_library_name, "percona_telemetry");
+    strcpy(worker.bgw_library_name, "percona_pg_telemetry");
     strcpy(worker.bgw_function_name, bgw_function_name);
     strcpy(worker.bgw_name, bgw_name);
     strcpy(worker.bgw_type, bgw_type);
@@ -821,7 +821,7 @@ write_database_info(PTDatabaseInfo *dbinfo, List *extlist)
  * Main function for the background launcher process
  */
 void
-percona_telemetry_main(Datum main_arg)
+percona_pg_telemetry_main(Datum main_arg)
 {
 	int rc = 0;
     List *dblist = NIL;
@@ -856,8 +856,8 @@ percona_telemetry_main(Datum main_arg)
     /* Set up connection */
     BackgroundWorkerInitializeConnectionByOid(InvalidOid, InvalidOid, 0);
 
-    /* Set name to make percona_telemetry visible in pg_stat_activity */
-    pgstat_report_appname("percona_telemetry");
+    /* Set name to make percona_pg_telemetry visible in pg_stat_activity */
+    pgstat_report_appname("percona_pg_telemetry");
 
     /* This is the context that we will allocate our data in */
     pt_cxt = AllocSetContextCreate(TopMemoryContext, "Percona Telemetry Context", ALLOCSET_DEFAULT_SIZES);
@@ -999,9 +999,9 @@ percona_telemetry_main(Datum main_arg)
              * Run the dynamic background worker and wait for it's completion
              * so that we can wake up the launcher process.
              */
-        	status = setup_background_worker("percona_telemetry_worker",
-                                                "percona_telemetry worker",
-                                                "percona_telemetry worker",
+        	status = setup_background_worker("percona_pg_telemetry_worker",
+                                                "percona_pg_telemetry worker",
+                                                "percona_pg_telemetry worker",
                                                 ptss->dbinfo.datid, MyProcPid);
 
             /* Wakeup the main process since the worker has stopped. */
@@ -1023,7 +1023,7 @@ percona_telemetry_main(Datum main_arg)
  * Worker process main function
  */
 void
-percona_telemetry_worker(Datum main_arg)
+percona_pg_telemetry_worker(Datum main_arg)
 {
     Oid datid;
     MemoryContext tmpcxt;
@@ -1042,8 +1042,8 @@ percona_telemetry_worker(Datum main_arg)
     /* This is the context that we will allocate our data in */
     tmpcxt = AllocSetContextCreate(TopMemoryContext, "Percona Telemetry Context (tmp)", ALLOCSET_DEFAULT_SIZES);
 
-    /* Set name to make percona_telemetry visible in pg_stat_activity */
-    pgstat_report_appname("percona_telemetry_worker");
+    /* Set name to make percona_pg_telemetry visible in pg_stat_activity */
+    pgstat_report_appname("percona_pg_telemetry_worker");
 
     /* Get the settings */
     if (ptss->first_db_entry)

@@ -11,7 +11,7 @@ DECLARE
     pg_version text;
     file_content text;
 BEGIN
-    SELECT latest_output_filename INTO file_path FROM percona_telemetry_status();
+    SELECT latest_output_filename INTO file_path FROM percona_pg_telemetry_status();
     SELECT system_identifier::TEXT INTO system_id FROM pg_control_system();
     SELECT version() INTO pg_version;
 
@@ -25,7 +25,7 @@ $$ LANGUAGE plpgsql;
 -- generated the json file.
 SELECT pg_sleep(3);
 
-CREATE EXTENSION percona_telemetry;
+CREATE EXTENSION percona_pg_telemetry;
 
 SELECT  'matches' AS db_instance_id
 FROM    pg_control_system()
@@ -63,5 +63,5 @@ HAVING  COUNT(*) = (
                 );
 -- Databases count will fail if you have any preexisting databases other than the standard template1 and postgres
 
-DROP EXTENSION percona_telemetry;
+DROP EXTENSION percona_pg_telemetry;
 DROP FUNCTION read_json_file;
