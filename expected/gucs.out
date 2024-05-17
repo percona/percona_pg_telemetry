@@ -1,31 +1,31 @@
 --
 -- GUC sanity
 --
-CREATE EXTENSION percona_telemetry;
+CREATE EXTENSION percona_pg_telemetry;
 SELECT application_name, backend_type, (backend_start IS NOT NULL) AS backend_started
 FROM pg_stat_activity
-WHERE application_name = 'percona_telemetry';
- application_name  |        backend_type        | backend_started 
--------------------+----------------------------+-----------------
- percona_telemetry | percona_telemetry launcher | t
+WHERE application_name = 'percona_pg_telemetry';
+   application_name   |         backend_type          | backend_started 
+----------------------+-------------------------------+-----------------
+ percona_pg_telemetry | percona_pg_telemetry launcher | t
 (1 row)
 
 \x
 SELECT name, setting, unit, short_desc, min_val, max_val, boot_val, reset_val
 FROM pg_settings
-WHERE name LIKE 'percona_telemetry.%'
+WHERE name LIKE 'percona_pg_telemetry.%'
 ORDER BY name;
--[ RECORD 1 ]-------------------------------------------------
-name       | percona_telemetry.enabled
+-[ RECORD 1 ]----------------------------------------------------
+name       | percona_pg_telemetry.enabled
 setting    | on
 unit       | 
-short_desc | Enable or disable the percona_telemetry extension
+short_desc | Enable or disable the percona_pg_telemetry extension
 min_val    | 
 max_val    | 
 boot_val   | on
 reset_val  | on
--[ RECORD 2 ]-------------------------------------------------
-name       | percona_telemetry.files_to_keep
+-[ RECORD 2 ]----------------------------------------------------
+name       | percona_pg_telemetry.files_to_keep
 setting    | 7
 unit       | 
 short_desc | Number of JSON files to keep for this instance.
@@ -33,8 +33,8 @@ min_val    | 1
 max_val    | 100
 boot_val   | 7
 reset_val  | 7
--[ RECORD 3 ]-------------------------------------------------
-name       | percona_telemetry.pg_telemetry_folder
+-[ RECORD 3 ]----------------------------------------------------
+name       | percona_pg_telemetry.pg_telemetry_folder
 setting    | .
 unit       | 
 short_desc | Directory path for writing database info file(s)
@@ -42,8 +42,8 @@ min_val    |
 max_val    | 
 boot_val   | /usr/local/percona/telemetry/pg
 reset_val  | .
--[ RECORD 4 ]-------------------------------------------------
-name       | percona_telemetry.scrape_interval
+-[ RECORD 4 ]----------------------------------------------------
+name       | percona_pg_telemetry.scrape_interval
 setting    | 1
 unit       | s
 short_desc | Data scrape interval
@@ -53,7 +53,7 @@ boot_val   | 86400
 reset_val  | 1
 
 \x
-ALTER SYSTEM SET percona_telemetry.enabled = false;
+ALTER SYSTEM SET percona_pg_telemetry.enabled = false;
 SELECT pg_reload_conf();
  pg_reload_conf 
 ----------------
@@ -68,17 +68,17 @@ SELECT pg_sleep(2);
 
 SELECT application_name, backend_type, (backend_start IS NOT NULL) AS backend_started
 FROM pg_stat_activity
-WHERE application_name = 'percona_telemetry';
- application_name  |        backend_type        | backend_started 
--------------------+----------------------------+-----------------
- percona_telemetry | percona_telemetry launcher | t
+WHERE application_name = 'percona_pg_telemetry';
+   application_name   |         backend_type          | backend_started 
+----------------------+-------------------------------+-----------------
+ percona_pg_telemetry | percona_pg_telemetry launcher | t
 (1 row)
 
-ALTER SYSTEM RESET percona_telemetry.enabled;
+ALTER SYSTEM RESET percona_pg_telemetry.enabled;
 SELECT pg_reload_conf();
  pg_reload_conf 
 ----------------
  t
 (1 row)
 
-DROP EXTENSION percona_telemetry;
+DROP EXTENSION percona_pg_telemetry;

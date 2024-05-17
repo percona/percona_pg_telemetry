@@ -1,32 +1,32 @@
 --
 -- GUC sanity
 --
-CREATE EXTENSION percona_telemetry;
+CREATE EXTENSION percona_pg_telemetry;
 SELECT application_name, backend_type, (backend_start IS NOT NULL) AS backend_started
 FROM pg_stat_activity
-WHERE application_name = 'percona_telemetry';
- application_name  |        backend_type        | backend_started 
--------------------+----------------------------+-----------------
- percona_telemetry | percona_telemetry launcher | t
+WHERE application_name = 'percona_pg_telemetry';
+   application_name   |         backend_type          | backend_started 
+----------------------+-------------------------------+-----------------
+ percona_pg_telemetry | percona_pg_telemetry launcher | t
 (1 row)
 
 \x
 SELECT name, setting, unit, short_desc, min_val, max_val, boot_val, reset_val
 FROM pg_settings
-WHERE name LIKE 'percona_telemetry.%'
+WHERE name LIKE 'percona_pg_telemetry.%'
 ORDER BY name;
--[ RECORD 1 ]-------------------------------------------------
-name       | percona_telemetry.enabled
+-[ RECORD 1 ]----------------------------------------------------
+name       | percona_pg_telemetry.enabled
 setting    | on
 unit       | 
-short_desc | Enable or disable the percona_telemetry extension
+short_desc | Enable or disable the percona_pg_telemetry extension
 min_val    | 
 max_val    | 
 boot_val   | on
 reset_val  | on
 
 \x
-ALTER SYSTEM SET percona_telemetry.enabled = false;
+ALTER SYSTEM SET percona_pg_telemetry.enabled = false;
 SELECT pg_reload_conf();
  pg_reload_conf 
 ----------------
@@ -41,17 +41,17 @@ SELECT pg_sleep(2);
 
 SELECT application_name, backend_type, (backend_start IS NOT NULL) AS backend_started
 FROM pg_stat_activity
-WHERE application_name = 'percona_telemetry';
- application_name  |        backend_type        | backend_started 
--------------------+----------------------------+-----------------
- percona_telemetry | percona_telemetry launcher | t
+WHERE application_name = 'percona_pg_telemetry';
+   application_name   |         backend_type          | backend_started 
+----------------------+-------------------------------+-----------------
+ percona_pg_telemetry | percona_pg_telemetry launcher | t
 (1 row)
 
-ALTER SYSTEM RESET percona_telemetry.enabled;
+ALTER SYSTEM RESET percona_pg_telemetry.enabled;
 SELECT pg_reload_conf();
  pg_reload_conf 
 ----------------
  t
 (1 row)
 
-DROP EXTENSION percona_telemetry;
+DROP EXTENSION percona_pg_telemetry;

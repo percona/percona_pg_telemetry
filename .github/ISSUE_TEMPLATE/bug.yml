@@ -32,8 +32,8 @@ body:
     id: version
     attributes:
       label: Version
-      description: What version of PostgreSQL and pg_percona_telemetry are you running?
-      placeholder: PostgreSQL 16.2, pg_percona_telemetry v1.0.0
+      description: What version of PostgreSQL and percona_pg_telemetry are you running?
+      placeholder: PostgreSQL 16.2, percona_pg_telemetry v1.0.0
     validations:
       required: true
   - type: textarea
