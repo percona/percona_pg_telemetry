@@ -61,7 +61,7 @@ typedef struct PTSharedState
     bool write_in_progress;
     TimestampTz last_file_processed;
     int curr_file_index;
-    char pg_telemetry_folder[MAXPGPATH];
+    char telemetry_path[MAXPGPATH];
     char dbtemp_filepath[MAXPGPATH];
     char telemetry_filenames[FLEXIBLE_ARRAY_MEMBER][MAXPGPATH];
 } PTSharedState;

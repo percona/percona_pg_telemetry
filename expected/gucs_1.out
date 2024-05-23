@@ -24,6 +24,15 @@ min_val    |
 max_val    | 
 boot_val   | on
 reset_val  | on
+-[ RECORD 2 ]-------------------------------------------------
+name       | percona_pg_telemetry.path
+setting    | /usr/local/percona/telemetry/pg
+unit       | 
+short_desc | Directory path for writing database info file(s)
+min_val    | 
+max_val    | 
+boot_val   | /usr/local/percona/telemetry/pg
+reset_val  | /usr/local/percona/telemetry/pg
 
 \x
 ALTER SYSTEM SET percona_pg_telemetry.enabled = false;

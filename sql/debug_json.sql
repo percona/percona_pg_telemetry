@@ -50,7 +50,7 @@ HAVING  COUNT(*) = (
                                             )
                                     AS INTEGER
                                 )
-                            + CAST(NOT EXISTS (SELECT * FROM pg_settings where name like '%pg_telemetry_folder') AS INTEGER)
+                            + CAST(NOT EXISTS (SELECT * FROM pg_settings where name = 'percona_pg_telemetry.path') AS INTEGER)
                 );
 -- Databases count will fail if you have any preexisting databases other than the standard template1 and postgres
 
@@ -59,7 +59,7 @@ FROM    pg_database
 WHERE   datallowconn = true
 HAVING  COUNT(*) = (
                     SELECT  json_array_length(read_json_file()::JSON->'databases')
-                            + CAST(NOT EXISTS (SELECT * FROM pg_settings where name like '%pg_telemetry_folder') AS INTEGER)
+                            + CAST(NOT EXISTS (SELECT * FROM pg_settings where name = 'percona_pg_telemetry.path') AS INTEGER)
                 );
 -- Databases count will fail if you have any preexisting databases other than the standard template1 and postgres
 
