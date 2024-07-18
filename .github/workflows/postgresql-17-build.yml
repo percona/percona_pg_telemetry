@@ -11,7 +11,7 @@ jobs:
         with:
           repository: 'postgres/postgres'
           path: postgres
-          ref: 'REL_17_BETA2'
+          ref: 'REL_17_STABLE'
 
       - name: Install dependencies
         run: |
