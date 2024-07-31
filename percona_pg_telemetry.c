@@ -74,9 +74,10 @@ static shmem_request_hook_type prev_shmem_request_hook = NULL;
 static BgwHandleStatus setup_background_worker(const char *bgw_function_name, const char *bgw_name, const char *bgw_type, Oid datid, pid_t bgw_notify_pid);
 static void start_leader(void);
 static long server_uptime(void);
-static void cleaup_telemetry_dir(void);
+static void load_telemery_files(void);
 static char *generate_filename(char *filename);
 static bool validate_dir(char *folder_path);
+static int compareFileNames(const ListCell *a, const ListCell *b);
 
 /* Database information collection and writing to file */
 static void write_pg_settings(void);
@@ -198,12 +199,17 @@ telemetry_file_is_valid(void)
 }
 
 /*
- *
+ * Adds a new filename to the next position in the circular buffer. If position already has a filename
+ * (i.e. we made full circle), then it will try to remove this file from filesystem. 
+ * Returns the previous filename that was in the position.
  */
 static char *
 telemetry_file_next(char *filename)
 {
-    char *curr_oldest = telemetry_curr_filename();
+    /* Get current file that will become previous */
+    char *previous = telemetry_curr_filename();
+
+    /* Increment the index. We are using a circular buffer. */
     ptss->curr_file_index = (ptss->curr_file_index + 1) % files_to_keep;
 
     /* Remove the existing file on this location if valid */
@@ -212,21 +218,26 @@ telemetry_file_next(char *filename)
         PathNameDeleteTemporaryFile(ptss->telemetry_filenames[ptss->curr_file_index], false);
     }
 
+    /* Add new file to the new current position */
     telemetry_add_filename(filename);
 
-    return (*curr_oldest) ? curr_oldest : NULL;
+    /* Return previous file */
+    return (*previous) ? previous : NULL;
 }
 
 /*
- *
+ * Load all telemetry files from the telemetry directory.
  */
 static void
-cleaup_telemetry_dir(void)
+load_telemery_files(void)
 {
     DIR *d;
     struct dirent *de;
     uint64 system_id = GetSystemIdentifier();
     char json_file_id[MAXPGPATH];
+    char full_path[MAXPGPATH];
+    List *files_list = NIL;
+    ListCell   *lc = NULL;
     int file_id_len;
 
     validate_dir(ptss->telemetry_path);
@@ -248,11 +259,32 @@ cleaup_telemetry_dir(void)
     {
         if (strncmp(json_file_id, de->d_name, file_id_len) == 0)
         {
-            telemetry_file_next(de->d_name);
+            /* Construct the file full path */
+            snprintf(full_path, sizeof(full_path), "%s/%s", ptss->telemetry_path, de->d_name);
+
+            files_list = lappend(files_list, pstrdup(full_path));
         }
     }
 
+    list_sort(files_list, compareFileNames);
+
+    foreach(lc, files_list)
+    {
+        char *file_path = lfirst(lc);
+        telemetry_file_next(file_path);
+    }
+
+    list_free_deep(files_list);
     FreeDir(d);
+}
+
+
+static int
+compareFileNames(const ListCell *a, const ListCell *b)
+{
+	char	   *fna = (char *) lfirst(a);
+	char	   *fnb = (char *) lfirst(b);
+	return  strcmp(fna, fnb);
 }
 
 /*
@@ -850,8 +882,8 @@ percona_pg_telemetry_main(Datum main_arg)
     /* Initialize shmem */
     pt_shmem_init();
 
-    /* Cleanup the directory */
-    cleaup_telemetry_dir();
+    /* Load existing telemetry files */
+    load_telemery_files();
 
     /* Set up connection */
     BackgroundWorkerInitializeConnectionByOid(InvalidOid, InvalidOid, 0);
