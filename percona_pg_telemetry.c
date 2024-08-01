@@ -272,7 +272,7 @@ load_telemery_files(void)
     }
 
 #if PG_VERSION_NUM >= 130000
-    list_sort(files_list, compareFileNames);
+    list_sort(files_list, compare_file_names);
 #else
     files_list = list_qsort(files_list, compare_file_names);
 #endif
