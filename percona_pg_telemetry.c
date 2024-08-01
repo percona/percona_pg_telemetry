@@ -79,9 +79,9 @@ static char *generate_filename(char *filename);
 static bool validate_dir(char *folder_path);
 
 #if PG_VERSION_NUM >= 130000
-static int compareFileNames(const ListCell *a, const ListCell *b);
+static int compare_file_names(const ListCell *a, const ListCell *b);
 #else
-static int compareFileNames(const void *a, const void *b);
+static int compare_file_names(const void *a, const void *b);
 #endif
 
 /* Database information collection and writing to file */
@@ -274,7 +274,7 @@ load_telemery_files(void)
 #if PG_VERSION_NUM >= 130000
     list_sort(files_list, compareFileNames);
 #else
-    files_list = list_qsort(files_list, compareFileNames);
+    files_list = list_qsort(files_list, compare_file_names);
 #endif
 
     foreach(lc, files_list)
@@ -290,7 +290,7 @@ load_telemery_files(void)
 
 #if PG_VERSION_NUM >= 130000
 static int
-compareFileNames(const ListCell *a, const ListCell *b)
+compare_file_names(const ListCell *a, const ListCell *b)
 {
 	char	   *fna = (char *) lfirst(a);
 	char	   *fnb = (char *) lfirst(b);
@@ -299,7 +299,7 @@ compareFileNames(const ListCell *a, const ListCell *b)
 
 #else
 static int
-compareFileNames(const void *a, const void *b)
+compare_file_names(const void *a, const void *b)
 {
 	char	   *fna = (char *) lfirst(*(ListCell **) a);
 	char	   *fnb = (char *) lfirst(*(ListCell **) b);
