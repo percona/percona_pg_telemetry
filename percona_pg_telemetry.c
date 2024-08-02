@@ -50,6 +50,7 @@ PG_MODULE_MAGIC;
 /* General defines */
 #define PT_BUILD_VERSION    "1.0"
 #define PT_FILENAME_BASE    "percona_pg_telemetry"
+#define PT_FILE_MODE        (S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH)
 
 /* Init and exported functions */
 void _PG_init(void);
@@ -1025,6 +1026,9 @@ percona_pg_telemetry_main(Datum main_arg)
 
                 /* Generate and save the filename */
                 telemetry_file_next(generate_filename(filename));
+
+                /* Change the file permissions before making it available to the agent. */
+                chmod(ptss->dbtemp_filepath, PT_FILE_MODE);
 
 	            /* Let's rename the temp file so that agent can pick it up. */
 	            if (rename(ptss->dbtemp_filepath, telemetry_curr_filename()) < 0)
