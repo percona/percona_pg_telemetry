@@ -49,7 +49,6 @@ PG_MODULE_MAGIC;
 
 /* General defines */
 #define PT_BUILD_VERSION    "1.0"
-#define PT_FILENAME_BASE    "percona_pg_telemetry"
 #define PT_FILE_MODE        (S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH)
 
 /* Init and exported functions */
@@ -167,7 +166,7 @@ generate_filename(char *filename)
     time_t currentTime;
 
     time(&currentTime);
-    pg_snprintf(f_name, MAXPGPATH, "%s-%lu-%ld.json", PT_FILENAME_BASE, system_id, currentTime);
+    pg_snprintf(f_name, MAXPGPATH, "%ld-%lu.json", currentTime, system_id);
 
     join_path_components(filename, ptss->telemetry_path, f_name);
 
@@ -240,11 +239,10 @@ load_telemery_files(void)
     DIR *d;
     struct dirent *de;
     uint64 system_id = GetSystemIdentifier();
-    char json_file_id[MAXPGPATH];
+    char filename_tail[MAXPGPATH];
     char full_path[MAXPGPATH];
     List *files_list = NIL;
     ListCell   *lc = NULL;
-    int file_id_len;
 
     validate_dir(ptss->telemetry_path);
 
@@ -258,12 +256,10 @@ load_telemery_files(void)
                                         ptss->telemetry_path)));
     }
 
-    pg_snprintf(json_file_id, sizeof(json_file_id), "%s-%lu", PT_FILENAME_BASE, system_id);
-    file_id_len = strlen(json_file_id);
-
+    pg_snprintf(filename_tail, sizeof(filename_tail), "%lu.json", system_id);
     while ((de = ReadDir(d, ptss->telemetry_path)) != NULL)
     {
-        if (strncmp(json_file_id, de->d_name, file_id_len) == 0)
+        if (strstr(de->d_name, filename_tail) != NULL)
         {
             /* Construct the file full path */
             snprintf(full_path, sizeof(full_path), "%s/%s", ptss->telemetry_path, de->d_name);
@@ -413,7 +409,7 @@ pt_shmem_init(void)
 
         /* Set paths */
         strncpy(ptss->telemetry_path, t_folder, MAXPGPATH);
-        pg_snprintf(ptss->dbtemp_filepath, MAXPGPATH, "%s/%s-%lu.temp", ptss->telemetry_path, PT_FILENAME_BASE, system_id);
+        pg_snprintf(ptss->dbtemp_filepath, MAXPGPATH, "%s/%lu.temp", ptss->telemetry_path, system_id);
 
         /* Let's be optimistic here. No error code and no file currently being written. */
         ptss->error_code = PT_SUCCESS;
