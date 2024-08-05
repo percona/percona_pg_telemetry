@@ -27,9 +27,9 @@ SELECT  percona_pg_telemetry_version();
 SELECT  regexp_replace(regexp_replace(latest_output_filename, '\d{11,}', '<INSTANCE ID>', 'g'), '\d{6,}', '<TIMESTAMP>', 'g') AS latest_output_filename
         , pt_enabled
 FROM    percona_pg_telemetry_status();
-                               latest_output_filename                                | pt_enabled 
--------------------------------------------------------------------------------------+------------
- /usr/local/percona/telemetry/pg/percona_pg_telemetry-<INSTANCE ID>-<TIMESTAMP>.json | t
+                     latest_output_filename                     | pt_enabled 
+----------------------------------------------------------------+------------
+ /usr/local/percona/telemetry/pg/<TIMESTAMP>-<INSTANCE ID>.json | t
 (1 row)
 
 DROP    EXTENSION percona_pg_telemetry;
