@@ -1,3 +1,14 @@
+/*-------------------------------------------------------------------------
+ *
+ * pt_json.c
+ *      For building the required json structure for telemetry.
+ *
+ * IDENTIFICATION
+ *    contrib/percona_pg_telemetry/pt_json.c
+ *
+ *-------------------------------------------------------------------------
+ */
+
 #include "pt_json.h"
 #include "percona_pg_telemetry.h"
 

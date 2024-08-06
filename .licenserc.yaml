@@ -1,0 +1,13 @@
+header:
+  paths:
+    - "**/*.c"
+    - "**/*.h"
+  license:
+    pattern: |
+      .*\.(c|h)
+      .*
+
+      IDENTIFICATION
+         contrib/percona_pg_telemetry/.*\.(c|h)
+
+  comment: never

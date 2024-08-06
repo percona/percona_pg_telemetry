@@ -1,13 +1,7 @@
 /*-------------------------------------------------------------------------
  *
  * percona_pg_telemetry.h
- *      Collect telemetry information for the database cluster.
- *
- * Portions Copyright © 2018-2024, Percona LLC and/or its affiliates
- *
- * Portions Copyright (c) 1996-2024, PostgreSQL Global Development Group
- *
- * Portions Copyright (c) 1994, The Regents of the University of California
+ *      Collects telemetry information for the database cluster.
  *
  * IDENTIFICATION
  *    contrib/percona_pg_telemetry/percona_pg_telemetry.h

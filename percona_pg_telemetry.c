@@ -1,3 +1,14 @@
+/*-------------------------------------------------------------------------
+ *
+ * percona_pg_telemetry.c
+ *      Collects telemetry information for the database cluster.
+ *
+ * IDENTIFICATION
+ *    contrib/percona_pg_telemetry/percona_pg_telemetry.c
+ *
+ *-------------------------------------------------------------------------
+ */
+
 #include "postgres.h"
 #include "fmgr.h"
 #include "funcapi.h"
