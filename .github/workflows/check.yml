@@ -10,27 +10,13 @@ jobs:
     steps:
       - name: Checkout sources
         uses: actions/checkout@v4
-        with:
-          path: src/percona_pg_telemetry
 
-      - name: Checkout cppcheck sources
-        uses: actions/checkout@v4
-        with:
-          repository: "danmar/cppcheck"
-          ref: "2.13.4"
-          path: src/cppcheck
-
-      - name: Build and install cppcheck
-        working-directory: src/cppcheck
+      - name: Install cppcheck
         run: |
-          mkdir build
-          cd build
-          cmake ..
-          cmake --build .
-          sudo cmake --install .
+          sudo apt-get update
+          sudo apt-get install -y cppcheck
 
       - name: Execute linter check with cppcheck
-        working-directory: src/percona_pg_telemetry
         run: |
           set -x
           cppcheck --enable=all --inline-suppr --template='{file}:{line},{severity},{id},{message}' --error-exitcode=1 --suppress=missingIncludeSystem --suppress=missingInclude --suppress=unmatchedSuppression:percona_pg_telemetry.c --check-config .
