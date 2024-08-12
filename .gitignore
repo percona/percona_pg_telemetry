@@ -14,3 +14,6 @@
 ## .vscode
 .vscode/
 .vscode/*
+
+# tools files
+typedefs-full.list

@@ -1,13 +1,7 @@
 /*-------------------------------------------------------------------------
  *
  * pt_json.h
- *      For building the require json structure for telemetry.
- *
- * Portions Copyright © 2018-2024, Percona LLC and/or its affiliates
- *
- * Portions Copyright (c) 1996-2024, PostgreSQL Global Development Group
- *
- * Portions Copyright (c) 1994, The Regents of the University of California
+ *      For building the required json structure for telemetry.
  *
  * IDENTIFICATION
  *    contrib/percona_pg_telemetry/pt_json.h
@@ -49,10 +43,10 @@
 #define PT_JSON_VALUE                   "value"
 
 /* JSON functions */
-bool json_state_init(void);
-bool json_state_validate(void);
-char *construct_json_block(char *msg_block, size_t msg_block_sz, char *key, char *raw_value, int flags, int *json_file_indent);
-FILE *json_file_open(char *pathname, char *mode);
-void write_json_to_file(FILE *fp, char *json_str);
+bool		json_state_init(void);
+bool		json_state_validate(void);
+char	   *construct_json_block(char *msg_block, size_t msg_block_sz, char *key, char *raw_value, int flags, int *json_file_indent);
+FILE	   *json_file_open(char *pathname, char *mode);
+void		write_json_to_file(FILE *fp, char *json_str);
 
-#endif  /* __PG_PT_JSON_H__ */
+#endif							/* __PG_PT_JSON_H__ */
