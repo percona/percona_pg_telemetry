@@ -60,7 +60,7 @@ PG_MODULE_MAGIC;
 
 /* General defines */
 #define PT_BUILD_VERSION    "1.0"
-#define PT_FILENAME_BASE    "percona_pg_telemetry"
+#define PT_FILE_MODE        (S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH)
 
 /* Init and exported functions */
 void _PG_init(void);
@@ -85,9 +85,15 @@ static shmem_request_hook_type prev_shmem_request_hook = NULL;
 static BgwHandleStatus setup_background_worker(const char *bgw_function_name, const char *bgw_name, const char *bgw_type, Oid datid, pid_t bgw_notify_pid);
 static void start_leader(void);
 static long server_uptime(void);
-static void cleaup_telemetry_dir(void);
+static void load_telemery_files(void);
 static char *generate_filename(char *filename);
 static bool validate_dir(char *folder_path);
+
+#if PG_VERSION_NUM >= 130000
+static int compare_file_names(const ListCell *a, const ListCell *b);
+#else
+static int compare_file_names(const void *a, const void *b);
+#endif
 
 /* Database information collection and writing to file */
 static void write_pg_settings(void);
@@ -171,7 +177,7 @@ generate_filename(char *filename)
     time_t currentTime;
 
     time(&currentTime);
-    pg_snprintf(f_name, MAXPGPATH, "%s-%lu-%ld.json", PT_FILENAME_BASE, system_id, currentTime);
+    pg_snprintf(f_name, MAXPGPATH, "%ld-%lu.json", currentTime, system_id);
 
     join_path_components(filename, ptss->telemetry_path, f_name);
 
@@ -209,12 +215,17 @@ telemetry_file_is_valid(void)
 }
 
 /*
- *
+ * Adds a new filename to the next position in the circular buffer. If position already has a filename
+ * (i.e. we made full circle), then it will try to remove this file from filesystem. 
+ * Returns the previous filename that was in the position.
  */
 static char *
 telemetry_file_next(char *filename)
 {
-    char *curr_oldest = telemetry_curr_filename();
+    /* Get current file that will become previous */
+    char *previous = telemetry_curr_filename();
+
+    /* Increment the index. We are using a circular buffer. */
     ptss->curr_file_index = (ptss->curr_file_index + 1) % files_to_keep;
 
     /* Remove the existing file on this location if valid */
@@ -223,22 +234,26 @@ telemetry_file_next(char *filename)
         PathNameDeleteTemporaryFile(ptss->telemetry_filenames[ptss->curr_file_index], false);
     }
 
+    /* Add new file to the new current position */
     telemetry_add_filename(filename);
 
-    return (*curr_oldest) ? curr_oldest : NULL;
+    /* Return previous file */
+    return (*previous) ? previous : NULL;
 }
 
 /*
- *
+ * Load all telemetry files from the telemetry directory.
  */
 static void
-cleaup_telemetry_dir(void)
+load_telemery_files(void)
 {
     DIR *d;
     struct dirent *de;
     uint64 system_id = GetSystemIdentifier();
-    char json_file_id[MAXPGPATH];
-    int file_id_len;
+    char filename_tail[MAXPGPATH];
+    char full_path[MAXPGPATH];
+    List *files_list = NIL;
+    ListCell   *lc = NULL;
 
     validate_dir(ptss->telemetry_path);
 
@@ -252,19 +267,53 @@ cleaup_telemetry_dir(void)
                                         ptss->telemetry_path)));
     }
 
-    pg_snprintf(json_file_id, sizeof(json_file_id), "%s-%lu", PT_FILENAME_BASE, system_id);
-    file_id_len = strlen(json_file_id);
-
+    pg_snprintf(filename_tail, sizeof(filename_tail), "%lu.json", system_id);
     while ((de = ReadDir(d, ptss->telemetry_path)) != NULL)
     {
-        if (strncmp(json_file_id, de->d_name, file_id_len) == 0)
+        if (strstr(de->d_name, filename_tail) != NULL)
         {
-            telemetry_file_next(de->d_name);
+            /* Construct the file full path */
+            snprintf(full_path, sizeof(full_path), "%s/%s", ptss->telemetry_path, de->d_name);
+
+            files_list = lappend(files_list, pstrdup(full_path));
         }
     }
 
+#if PG_VERSION_NUM >= 130000
+    list_sort(files_list, compare_file_names);
+#else
+    files_list = list_qsort(files_list, compare_file_names);
+#endif
+
+    foreach(lc, files_list)
+    {
+        char *file_path = lfirst(lc);
+        telemetry_file_next(file_path);
+    }
+
+    list_free_deep(files_list);
     FreeDir(d);
 }
+
+
+#if PG_VERSION_NUM >= 130000
+static int
+compare_file_names(const ListCell *a, const ListCell *b)
+{
+	char	   *fna = (char *) lfirst(a);
+	char	   *fnb = (char *) lfirst(b);
+	return  strcmp(fna, fnb);
+}
+
+#else
+static int
+compare_file_names(const void *a, const void *b)
+{
+	char	   *fna = (char *) lfirst(*(ListCell **) a);
+	char	   *fnb = (char *) lfirst(*(ListCell **) b);
+	return  strcmp(fna, fnb);
+}
+#endif
 
 /*
  * telemetry_path
@@ -371,7 +420,7 @@ pt_shmem_init(void)
 
         /* Set paths */
         strncpy(ptss->telemetry_path, t_folder, MAXPGPATH);
-        pg_snprintf(ptss->dbtemp_filepath, MAXPGPATH, "%s/%s-%lu.temp", ptss->telemetry_path, PT_FILENAME_BASE, system_id);
+        pg_snprintf(ptss->dbtemp_filepath, MAXPGPATH, "%s/%lu.temp", ptss->telemetry_path, system_id);
 
         /* Let's be optimistic here. No error code and no file currently being written. */
         ptss->error_code = PT_SUCCESS;
@@ -861,8 +910,8 @@ percona_pg_telemetry_main(Datum main_arg)
     /* Initialize shmem */
     pt_shmem_init();
 
-    /* Cleanup the directory */
-    cleaup_telemetry_dir();
+    /* Load existing telemetry files */
+    load_telemery_files();
 
     /* Set up connection */
     BackgroundWorkerInitializeConnectionByOid(InvalidOid, InvalidOid, 0);
@@ -984,6 +1033,9 @@ percona_pg_telemetry_main(Datum main_arg)
 
                 /* Generate and save the filename */
                 telemetry_file_next(generate_filename(filename));
+
+                /* Change the file permissions before making it available to the agent. */
+                chmod(ptss->dbtemp_filepath, PT_FILE_MODE);
 
 	            /* Let's rename the temp file so that agent can pick it up. */
 	            if (rename(ptss->dbtemp_filepath, telemetry_curr_filename()) < 0)
