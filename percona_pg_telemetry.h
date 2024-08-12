@@ -19,26 +19,26 @@
 /* Struct to store pg_settings data */
 typedef struct PTSettingsInfo
 {
-    char *name;
-    char *unit;
-    char *settings;
-    char *reset_val;
-    char *boot_val;
+	char	   *name;
+	char	   *unit;
+	char	   *settings;
+	char	   *reset_val;
+	char	   *boot_val;
 } PTSetttingsInfo;
 
 /* Struct to keep track of databases telemetry data */
 typedef struct PTDatabaseInfo
 {
-    Oid  datid;
-    char datname[NAMEDATALEN];
-    int64 datsize;
+	Oid			datid;
+	char		datname[NAMEDATALEN];
+	int64		datsize;
 } PTDatabaseInfo;
 
 /* Struct to keep track of extensions of a database */
 typedef struct PTExtensionInfo
 {
-    char     extname[NAMEDATALEN];
-    PTDatabaseInfo *db_data;
+	char		extname[NAMEDATALEN];
+	PTDatabaseInfo *db_data;
 } PTExtensionInfo;
 
 /*
@@ -47,17 +47,17 @@ typedef struct PTExtensionInfo
  */
 typedef struct PTSharedState
 {
-    int error_code;
-    int json_file_indent;
-    PTDatabaseInfo dbinfo;
-    bool first_db_entry;
-    bool last_db_entry;
-    bool write_in_progress;
-    TimestampTz last_file_processed;
-    int curr_file_index;
-    char telemetry_path[MAXPGPATH];
-    char dbtemp_filepath[MAXPGPATH];
-    char telemetry_filenames[FLEXIBLE_ARRAY_MEMBER][MAXPGPATH];
+	int			error_code;
+	int			json_file_indent;
+	PTDatabaseInfo dbinfo;
+	bool		first_db_entry;
+	bool		last_db_entry;
+	bool		write_in_progress;
+	TimestampTz last_file_processed;
+	int			curr_file_index;
+	char		telemetry_path[MAXPGPATH];
+	char		dbtemp_filepath[MAXPGPATH];
+	char		telemetry_filenames[FLEXIBLE_ARRAY_MEMBER][MAXPGPATH];
 } PTSharedState;
 
 /* Defining error codes */

@@ -43,10 +43,10 @@
 #define PT_JSON_VALUE                   "value"
 
 /* JSON functions */
-bool json_state_init(void);
-bool json_state_validate(void);
-char *construct_json_block(char *msg_block, size_t msg_block_sz, char *key, char *raw_value, int flags, int *json_file_indent);
-FILE *json_file_open(char *pathname, char *mode);
-void write_json_to_file(FILE *fp, char *json_str);
+bool		json_state_init(void);
+bool		json_state_validate(void);
+char	   *construct_json_block(char *msg_block, size_t msg_block_sz, char *key, char *raw_value, int flags, int *json_file_indent);
+FILE	   *json_file_open(char *pathname, char *mode);
+void		write_json_to_file(FILE *fp, char *json_str);
 
-#endif  /* __PG_PT_JSON_H__ */
+#endif							/* __PG_PT_JSON_H__ */

@@ -63,7 +63,7 @@ PG_MODULE_MAGIC;
 #define PT_FILE_MODE        (S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH)
 
 /* Init and exported functions */
-void _PG_init(void);
+void		_PG_init(void);
 PGDLLEXPORT void percona_pg_telemetry_main(Datum);
 PGDLLEXPORT void percona_pg_telemetry_worker(Datum);
 
@@ -90,9 +90,9 @@ static char *generate_filename(char *filename);
 static bool validate_dir(char *folder_path);
 
 #if PG_VERSION_NUM >= 130000
-static int compare_file_names(const ListCell *a, const ListCell *b);
+static int	compare_file_names(const ListCell *a, const ListCell *b);
 #else
-static int compare_file_names(const void *a, const void *b);
+static int	compare_file_names(const void *a, const void *b);
 #endif
 
 /* Database information collection and writing to file */
@@ -113,10 +113,10 @@ static PTSharedState *ptss = NULL;
 static volatile sig_atomic_t sigterm_recvd = false;
 
 /* GUC variables */
-char *t_folder = PT_DEFAULT_FOLDER_PATH;
-int scrape_interval = HOURS_PER_DAY * MINS_PER_HOUR * SECS_PER_MINUTE;
-bool telemetry_enabled = true;
-int files_to_keep = 7;
+char	   *t_folder = PT_DEFAULT_FOLDER_PATH;
+int			scrape_interval = HOURS_PER_DAY * MINS_PER_HOUR * SECS_PER_MINUTE;
+bool		telemetry_enabled = true;
+int			files_to_keep = 7;
 
 /* General global variables */
 static MemoryContext pt_cxt;
@@ -127,13 +127,13 @@ static MemoryContext pt_cxt;
 static void
 pt_sigterm(SIGNAL_ARGS)
 {
-    sigterm_recvd = true;
+	sigterm_recvd = true;
 
-    /* Only if MyProc is set... */
-    if (MyProc != NULL)
-    {
-        SetLatch(&MyProc->procLatch);
-    }
+	/* Only if MyProc is set... */
+	if (MyProc != NULL)
+	{
+		SetLatch(&MyProc->procLatch);
+	}
 }
 
 /*
@@ -148,10 +148,10 @@ _PG_init(void)
 	init_guc();
 
 #if PG_VERSION_NUM >= 150000
-    prev_shmem_request_hook = shmem_request_hook;
-    shmem_request_hook = pt_shmem_request;
+	prev_shmem_request_hook = shmem_request_hook;
+	shmem_request_hook = pt_shmem_request;
 #else
-    pt_shmem_request();
+	pt_shmem_request();
 #endif
 
 	start_leader();
@@ -163,7 +163,7 @@ _PG_init(void)
 static void
 start_leader(void)
 {
-    setup_background_worker("percona_pg_telemetry_main", "percona_pg_telemetry launcher", "percona_pg_telemetry launcher", InvalidOid, 0);
+	setup_background_worker("percona_pg_telemetry_main", "percona_pg_telemetry launcher", "percona_pg_telemetry launcher", InvalidOid, 0);
 }
 
 /*
@@ -172,16 +172,16 @@ start_leader(void)
 static char *
 generate_filename(char *filename)
 {
-    char f_name[MAXPGPATH];
-    uint64 system_id = GetSystemIdentifier();
-    time_t currentTime;
+	char		f_name[MAXPGPATH];
+	uint64		system_id = GetSystemIdentifier();
+	time_t		currentTime;
 
-    time(&currentTime);
-    pg_snprintf(f_name, MAXPGPATH, "%ld-%lu.json", currentTime, system_id);
+	time(&currentTime);
+	pg_snprintf(f_name, MAXPGPATH, "%ld-%lu.json", currentTime, system_id);
 
-    join_path_components(filename, ptss->telemetry_path, f_name);
+	join_path_components(filename, ptss->telemetry_path, f_name);
 
-    return filename;
+	return filename;
 }
 
 /*
@@ -190,10 +190,10 @@ generate_filename(char *filename)
 static char *
 telemetry_add_filename(char *filename)
 {
-    Assert(filename);
+	Assert(filename);
 
-    snprintf(ptss->telemetry_filenames[ptss->curr_file_index], MAXPGPATH, "%s", filename);
-    return ptss->telemetry_filenames[ptss->curr_file_index];
+	snprintf(ptss->telemetry_filenames[ptss->curr_file_index], MAXPGPATH, "%s", filename);
+	return ptss->telemetry_filenames[ptss->curr_file_index];
 }
 
 /*
@@ -202,7 +202,7 @@ telemetry_add_filename(char *filename)
 static char *
 telemetry_curr_filename(void)
 {
-    return ptss->telemetry_filenames[ptss->curr_file_index];
+	return ptss->telemetry_filenames[ptss->curr_file_index];
 }
 
 /*
@@ -211,34 +211,34 @@ telemetry_curr_filename(void)
 static bool
 telemetry_file_is_valid(void)
 {
-    return (*ptss->telemetry_filenames[ptss->curr_file_index] != '\0');
+	return (*ptss->telemetry_filenames[ptss->curr_file_index] != '\0');
 }
 
 /*
  * Adds a new filename to the next position in the circular buffer. If position already has a filename
- * (i.e. we made full circle), then it will try to remove this file from filesystem. 
+ * (i.e. we made full circle), then it will try to remove this file from filesystem.
  * Returns the previous filename that was in the position.
  */
 static char *
 telemetry_file_next(char *filename)
 {
-    /* Get current file that will become previous */
-    char *previous = telemetry_curr_filename();
+	/* Get current file that will become previous */
+	char	   *previous = telemetry_curr_filename();
 
-    /* Increment the index. We are using a circular buffer. */
-    ptss->curr_file_index = (ptss->curr_file_index + 1) % files_to_keep;
+	/* Increment the index. We are using a circular buffer. */
+	ptss->curr_file_index = (ptss->curr_file_index + 1) % files_to_keep;
 
-    /* Remove the existing file on this location if valid */
-    if (telemetry_file_is_valid())
-    {
-        PathNameDeleteTemporaryFile(ptss->telemetry_filenames[ptss->curr_file_index], false);
-    }
+	/* Remove the existing file on this location if valid */
+	if (telemetry_file_is_valid())
+	{
+		PathNameDeleteTemporaryFile(ptss->telemetry_filenames[ptss->curr_file_index], false);
+	}
 
-    /* Add new file to the new current position */
-    telemetry_add_filename(filename);
+	/* Add new file to the new current position */
+	telemetry_add_filename(filename);
 
-    /* Return previous file */
-    return (*previous) ? previous : NULL;
+	/* Return previous file */
+	return (*previous) ? previous : NULL;
 }
 
 /*
@@ -247,52 +247,53 @@ telemetry_file_next(char *filename)
 static void
 load_telemery_files(void)
 {
-    DIR *d;
-    struct dirent *de;
-    uint64 system_id = GetSystemIdentifier();
-    char filename_tail[MAXPGPATH];
-    char full_path[MAXPGPATH];
-    List *files_list = NIL;
-    ListCell   *lc = NULL;
+	DIR		   *d;
+	struct dirent *de;
+	uint64		system_id = GetSystemIdentifier();
+	char		filename_tail[MAXPGPATH];
+	char		full_path[MAXPGPATH];
+	List	   *files_list = NIL;
+	ListCell   *lc = NULL;
 
-    validate_dir(ptss->telemetry_path);
+	validate_dir(ptss->telemetry_path);
 
-    d = AllocateDir(ptss->telemetry_path);
+	d = AllocateDir(ptss->telemetry_path);
 
-    if (d == NULL)
-    {
-        ereport(ERROR,
-                        (errcode_for_file_access(),
-                            errmsg("could not open percona telemetry directory \"%s\": %m",
-                                        ptss->telemetry_path)));
-    }
+	if (d == NULL)
+	{
+		ereport(ERROR,
+				(errcode_for_file_access(),
+				 errmsg("could not open percona telemetry directory \"%s\": %m",
+						ptss->telemetry_path)));
+	}
 
-    pg_snprintf(filename_tail, sizeof(filename_tail), "%lu.json", system_id);
-    while ((de = ReadDir(d, ptss->telemetry_path)) != NULL)
-    {
-        if (strstr(de->d_name, filename_tail) != NULL)
-        {
-            /* Construct the file full path */
-            snprintf(full_path, sizeof(full_path), "%s/%s", ptss->telemetry_path, de->d_name);
+	pg_snprintf(filename_tail, sizeof(filename_tail), "%lu.json", system_id);
+	while ((de = ReadDir(d, ptss->telemetry_path)) != NULL)
+	{
+		if (strstr(de->d_name, filename_tail) != NULL)
+		{
+			/* Construct the file full path */
+			snprintf(full_path, sizeof(full_path), "%s/%s", ptss->telemetry_path, de->d_name);
 
-            files_list = lappend(files_list, pstrdup(full_path));
-        }
-    }
+			files_list = lappend(files_list, pstrdup(full_path));
+		}
+	}
 
 #if PG_VERSION_NUM >= 130000
-    list_sort(files_list, compare_file_names);
+	list_sort(files_list, compare_file_names);
 #else
-    files_list = list_qsort(files_list, compare_file_names);
+	files_list = list_qsort(files_list, compare_file_names);
 #endif
 
-    foreach(lc, files_list)
-    {
-        char *file_path = lfirst(lc);
-        telemetry_file_next(file_path);
-    }
+	foreach(lc, files_list)
+	{
+		char	   *file_path = lfirst(lc);
 
-    list_free_deep(files_list);
-    FreeDir(d);
+		telemetry_file_next(file_path);
+	}
+
+	list_free_deep(files_list);
+	FreeDir(d);
 }
 
 
@@ -302,7 +303,8 @@ compare_file_names(const ListCell *a, const ListCell *b)
 {
 	char	   *fna = (char *) lfirst(a);
 	char	   *fnb = (char *) lfirst(b);
-	return  strcmp(fna, fnb);
+
+	return strcmp(fna, fnb);
 }
 
 #else
@@ -311,7 +313,8 @@ compare_file_names(const void *a, const void *b)
 {
 	char	   *fna = (char *) lfirst(*(ListCell **) a);
 	char	   *fnb = (char *) lfirst(*(ListCell **) b);
-	return  strcmp(fna, fnb);
+
+	return strcmp(fna, fnb);
 }
 #endif
 
@@ -321,25 +324,25 @@ compare_file_names(const void *a, const void *b)
 bool
 validate_dir(char *folder_path)
 {
-    struct stat st;
-    bool is_dir = false;
+	struct stat st;
+	bool		is_dir = false;
 
-    /* Let's validate the path. */
-    if (stat(folder_path, &st) == 0)
-    {
-        is_dir = S_ISDIR(st.st_mode);
-    }
+	/* Let's validate the path. */
+	if (stat(folder_path, &st) == 0)
+	{
+		is_dir = S_ISDIR(st.st_mode);
+	}
 
-    if (is_dir == false)
-    {
-        ereport(LOG,
-                (errcode_for_file_access(),
-                 errmsg("percona_pg_telemetry.path \"%s\" is not set to a writeable folder or the folder does not exist.", folder_path)));
+	if (is_dir == false)
+	{
+		ereport(LOG,
+				(errcode_for_file_access(),
+				 errmsg("percona_pg_telemetry.path \"%s\" is not set to a writeable folder or the folder does not exist.", folder_path)));
 
-        PT_WORKER_EXIT(PT_FILE_ERROR);
-    }
+		PT_WORKER_EXIT(PT_FILE_ERROR);
+	}
 
-    return is_dir;
+	return is_dir;
 }
 
 /*
@@ -350,32 +353,32 @@ percona_pg_telemetry_status(PG_FUNCTION_ARGS)
 {
 #define PT_STATUS_COLUMN_COUNT  2
 
-    TupleDesc tupdesc;
-    Datum values[PT_STATUS_COLUMN_COUNT];
-    bool nulls[PT_STATUS_COLUMN_COUNT] = {false};
-    HeapTuple tup;
-    Datum result;
-    int col_index = 0;
+	TupleDesc	tupdesc;
+	Datum		values[PT_STATUS_COLUMN_COUNT];
+	bool		nulls[PT_STATUS_COLUMN_COUNT] = {false};
+	HeapTuple	tup;
+	Datum		result;
+	int			col_index = 0;
 
-    /* Initialize shmem */
-    pt_shmem_init();
+	/* Initialize shmem */
+	pt_shmem_init();
 
-    tupdesc = CreateTemplateTupleDesc(PT_STATUS_COLUMN_COUNT);
-    TupleDescInitEntry(tupdesc, (AttrNumber) 1, "latest_output_filename", TEXTOID, -1, 0);
-    TupleDescInitEntry(tupdesc, (AttrNumber) 2, "pt_enabled", BOOLOID, -1, 0);
-    tupdesc = BlessTupleDesc(tupdesc);
+	tupdesc = CreateTemplateTupleDesc(PT_STATUS_COLUMN_COUNT);
+	TupleDescInitEntry(tupdesc, (AttrNumber) 1, "latest_output_filename", TEXTOID, -1, 0);
+	TupleDescInitEntry(tupdesc, (AttrNumber) 2, "pt_enabled", BOOLOID, -1, 0);
+	tupdesc = BlessTupleDesc(tupdesc);
 
-    col_index = 0;
-    if (telemetry_curr_filename()[0] != '\0')
-        values[col_index] = CStringGetTextDatum(telemetry_curr_filename());
-    else
-        nulls[col_index] = true;
+	col_index = 0;
+	if (telemetry_curr_filename()[0] != '\0')
+		values[col_index] = CStringGetTextDatum(telemetry_curr_filename());
+	else
+		nulls[col_index] = true;
 
-    col_index++;
-    values[col_index] = BoolGetDatum(telemetry_enabled);
+	col_index++;
+	values[col_index] = BoolGetDatum(telemetry_enabled);
 
-    tup = heap_form_tuple(tupdesc, values, nulls);
-    result = HeapTupleGetDatum(tup);
+	tup = heap_form_tuple(tupdesc, values, nulls);
+	result = HeapTupleGetDatum(tup);
 
 	PG_RETURN_DATUM(result);
 }
@@ -396,11 +399,11 @@ static void
 pt_shmem_request(void)
 {
 #if PG_VERSION_NUM >= 150000
-    if (prev_shmem_request_hook)
-        prev_shmem_request_hook();
+	if (prev_shmem_request_hook)
+		prev_shmem_request_hook();
 #endif
 
-    RequestAddinShmemSpace(MAXALIGN(PT_SHARED_STATE_SIZE));
+	RequestAddinShmemSpace(MAXALIGN(PT_SHARED_STATE_SIZE));
 }
 
 /*
@@ -409,31 +412,34 @@ pt_shmem_request(void)
 static void
 pt_shmem_init(void)
 {
-    bool found;
+	bool		found;
 
-    LWLockAcquire(AddinShmemInitLock, LW_EXCLUSIVE);
+	LWLockAcquire(AddinShmemInitLock, LW_EXCLUSIVE);
 
-    ptss = (PTSharedState *) ShmemInitStruct("percona_pg_telemetry shared state", sizeof(PTSharedState), &found);
-    if (!found)
-    {
-        uint64 system_id = GetSystemIdentifier();
+	ptss = (PTSharedState *) ShmemInitStruct("percona_pg_telemetry shared state", sizeof(PTSharedState), &found);
+	if (!found)
+	{
+		uint64		system_id = GetSystemIdentifier();
 
-        /* Set paths */
-        strncpy(ptss->telemetry_path, t_folder, MAXPGPATH);
-        pg_snprintf(ptss->dbtemp_filepath, MAXPGPATH, "%s/%lu.temp", ptss->telemetry_path, system_id);
+		/* Set paths */
+		strncpy(ptss->telemetry_path, t_folder, MAXPGPATH);
+		pg_snprintf(ptss->dbtemp_filepath, MAXPGPATH, "%s/%lu.temp", ptss->telemetry_path, system_id);
 
-        /* Let's be optimistic here. No error code and no file currently being written. */
-        ptss->error_code = PT_SUCCESS;
-        ptss->write_in_progress = false;
-        ptss->json_file_indent = 0;
-        ptss->first_db_entry = false;
-        ptss->last_db_entry = false;
+		/*
+		 * Let's be optimistic here. No error code and no file currently being
+		 * written.
+		 */
+		ptss->error_code = PT_SUCCESS;
+		ptss->write_in_progress = false;
+		ptss->json_file_indent = 0;
+		ptss->first_db_entry = false;
+		ptss->last_db_entry = false;
 
-        ptss->curr_file_index = 0;
-        memset(ptss->telemetry_filenames, 0, PT_SHARED_STATE_PREV_FILE_SIZE);
-    }
+		ptss->curr_file_index = 0;
+		memset(ptss->telemetry_filenames, 0, PT_SHARED_STATE_PREV_FILE_SIZE);
+	}
 
-    LWLockRelease(AddinShmemInitLock);
+	LWLockRelease(AddinShmemInitLock);
 }
 
 /*
@@ -442,66 +448,66 @@ pt_shmem_init(void)
 static void
 init_guc(void)
 {
-    char       *env;
+	char	   *env;
 
-    /* is the extension enabled? */
-    DefineCustomBoolVariable("percona_pg_telemetry.enabled",
-                             "Enable or disable the percona_pg_telemetry extension",
-                             NULL,
-                             &telemetry_enabled,
-                             true,
-                             PGC_SIGHUP,
-                             0,
-                             NULL,
-                             NULL,
-                             NULL);
+	/* is the extension enabled? */
+	DefineCustomBoolVariable("percona_pg_telemetry.enabled",
+							 "Enable or disable the percona_pg_telemetry extension",
+							 NULL,
+							 &telemetry_enabled,
+							 true,
+							 PGC_SIGHUP,
+							 0,
+							 NULL,
+							 NULL,
+							 NULL);
 
-    /* telemetry files path */
-    DefineCustomStringVariable("percona_pg_telemetry.path",
-                            "Directory path for writing database info file(s)",
-                            NULL,
-                            &t_folder,
-                            PT_DEFAULT_FOLDER_PATH,
-                            PGC_SIGHUP,
-                            0,
-                            NULL,
-                            NULL,
-                            NULL);
+	/* telemetry files path */
+	DefineCustomStringVariable("percona_pg_telemetry.path",
+							   "Directory path for writing database info file(s)",
+							   NULL,
+							   &t_folder,
+							   PT_DEFAULT_FOLDER_PATH,
+							   PGC_SIGHUP,
+							   0,
+							   NULL,
+							   NULL,
+							   NULL);
 
-    env = getenv("PT_DEBUG");
-    if (env != NULL)
-    {
-        /* scan time interval for the main launch process */
-        DefineCustomIntVariable("percona_pg_telemetry.scrape_interval",
-                                "Data scrape interval",
-                                NULL,
-                                &scrape_interval,
-                                HOURS_PER_DAY * MINS_PER_HOUR * SECS_PER_MINUTE,
-                                1,
-                                INT_MAX,
-                                PGC_SIGHUP,
-                                GUC_UNIT_S,
-                                NULL,
-                                NULL,
-                                NULL);
+	env = getenv("PT_DEBUG");
+	if (env != NULL)
+	{
+		/* scan time interval for the main launch process */
+		DefineCustomIntVariable("percona_pg_telemetry.scrape_interval",
+								"Data scrape interval",
+								NULL,
+								&scrape_interval,
+								HOURS_PER_DAY * MINS_PER_HOUR * SECS_PER_MINUTE,
+								1,
+								INT_MAX,
+								PGC_SIGHUP,
+								GUC_UNIT_S,
+								NULL,
+								NULL,
+								NULL);
 
-        /* Number of files to keep */
-        DefineCustomIntVariable("percona_pg_telemetry.files_to_keep",
-                                "Number of JSON files to keep for this instance.",
-                                NULL,
-                                &files_to_keep,
-                                7,
-                                1,
-                                100,
-                                PGC_SIGHUP,
-                                0,
-                                NULL,
-                                NULL,
-                                NULL);
-    }
+		/* Number of files to keep */
+		DefineCustomIntVariable("percona_pg_telemetry.files_to_keep",
+								"Number of JSON files to keep for this instance.",
+								NULL,
+								&files_to_keep,
+								7,
+								1,
+								100,
+								PGC_SIGHUP,
+								0,
+								NULL,
+								NULL,
+								NULL);
+	}
 
 #if PG_VERSION_NUM >= 150000
-    MarkGUCPrefixReserved("percona_pg_telemetry");
+	MarkGUCPrefixReserved("percona_pg_telemetry");
 #endif
 }
 
@@ -516,43 +522,43 @@ init_guc(void)
 static BgwHandleStatus
 setup_background_worker(const char *bgw_function_name, const char *bgw_name, const char *bgw_type, Oid datid, pid_t bgw_notify_pid)
 {
-    BackgroundWorker worker;
-    BackgroundWorkerHandle *handle;
+	BackgroundWorker worker;
+	BackgroundWorkerHandle *handle;
 
-    MemSet(&worker, 0, sizeof(BackgroundWorker));
-    worker.bgw_flags = BGWORKER_SHMEM_ACCESS | BGWORKER_BACKEND_DATABASE_CONNECTION;
-    worker.bgw_start_time = BgWorkerStart_RecoveryFinished;
+	MemSet(&worker, 0, sizeof(BackgroundWorker));
+	worker.bgw_flags = BGWORKER_SHMEM_ACCESS | BGWORKER_BACKEND_DATABASE_CONNECTION;
+	worker.bgw_start_time = BgWorkerStart_RecoveryFinished;
 	worker.bgw_restart_time = BGW_NEVER_RESTART;
-    strcpy(worker.bgw_library_name, "percona_pg_telemetry");
-    strcpy(worker.bgw_function_name, bgw_function_name);
-    strcpy(worker.bgw_name, bgw_name);
-    strcpy(worker.bgw_type, bgw_type);
-    worker.bgw_main_arg = ObjectIdGetDatum(datid);
-    worker.bgw_notify_pid = bgw_notify_pid;
+	strcpy(worker.bgw_library_name, "percona_pg_telemetry");
+	strcpy(worker.bgw_function_name, bgw_function_name);
+	strcpy(worker.bgw_name, bgw_name);
+	strcpy(worker.bgw_type, bgw_type);
+	worker.bgw_main_arg = ObjectIdGetDatum(datid);
+	worker.bgw_notify_pid = bgw_notify_pid;
 
-    /* Case of a launcher */
-    if (bgw_notify_pid == 0)
-    {
-        /* Leader should never connect to a valid database. */
-        worker.bgw_main_arg = ObjectIdGetDatum(InvalidOid);
+	/* Case of a launcher */
+	if (bgw_notify_pid == 0)
+	{
+		/* Leader should never connect to a valid database. */
+		worker.bgw_main_arg = ObjectIdGetDatum(InvalidOid);
 
-        RegisterBackgroundWorker(&worker);
+		RegisterBackgroundWorker(&worker);
 
-        /* Let's be optimistic about it's start. */
-        return BGWH_STARTED;
-    }
+		/* Let's be optimistic about it's start. */
+		return BGWH_STARTED;
+	}
 
-    /* Validate that it's a valid database Oid */
-    Assert(datid != InvalidOid);
-    worker.bgw_main_arg = ObjectIdGetDatum(datid);
+	/* Validate that it's a valid database Oid */
+	Assert(datid != InvalidOid);
+	worker.bgw_main_arg = ObjectIdGetDatum(datid);
 
-    /*
-     * Register the work and wait until it shuts down. This enforces creation
-     * only one background worker process. So, don't have to implement any
-     * locking for error handling or file writing.
-     */
-    RegisterDynamicBackgroundWorker(&worker, &handle);
-    return WaitForBackgroundWorkerShutdown(handle);
+	/*
+	 * Register the work and wait until it shuts down. This enforces creation
+	 * only one background worker process. So, don't have to implement any
+	 * locking for error handling or file writing.
+	 */
+	RegisterDynamicBackgroundWorker(&worker, &handle);
+	return WaitForBackgroundWorkerShutdown(handle);
 }
 
 /*
@@ -561,12 +567,12 @@ setup_background_worker(const char *bgw_function_name, const char *bgw_name, con
 static long
 server_uptime(void)
 {
-    long secs;
-    int microsecs;
+	long		secs;
+	int			microsecs;
 
-    TimestampDifference(PgStartTime, GetCurrentTimestamp(), &secs, &microsecs);
+	TimestampDifference(PgStartTime, GetCurrentTimestamp(), &secs, &microsecs);
 
-    return secs;
+	return secs;
 }
 
 /*
@@ -579,100 +585,101 @@ server_uptime(void)
 static void
 write_pg_settings(void)
 {
-    SPITupleTable *tuptable;
-    int spi_result;
-    char *query = "SELECT name, unit, setting, reset_val, boot_val FROM pg_settings where vartype != 'string'";
-    char msg[2048] = {0};
-    char msg_json[4096] = {0};
-    size_t sz_json;
-    FILE *fp;
-    int flags;
+	SPITupleTable *tuptable;
+	int			spi_result;
+	char	   *query = "SELECT name, unit, setting, reset_val, boot_val FROM pg_settings where vartype != 'string'";
+	char		msg[2048] = {0};
+	char		msg_json[4096] = {0};
+	size_t		sz_json;
+	FILE	   *fp;
+	int			flags;
 
-    sz_json = sizeof(msg_json);
+	sz_json = sizeof(msg_json);
 
-    /* Open file in append mode. */
-    fp = json_file_open(ptss->dbtemp_filepath, "a+");
+	/* Open file in append mode. */
+	fp = json_file_open(ptss->dbtemp_filepath, "a+");
 
-    /* Construct and initiate the active extensions array block. */
-    construct_json_block(msg_json, sz_json, "", "settings", PT_JSON_ARRAY_START, &ptss->json_file_indent);
-    write_json_to_file(fp, msg_json);
+	/* Construct and initiate the active extensions array block. */
+	construct_json_block(msg_json, sz_json, "", "settings", PT_JSON_ARRAY_START, &ptss->json_file_indent);
+	write_json_to_file(fp, msg_json);
 
-    SetCurrentStatementStartTimestamp();
-    StartTransactionCommand();
+	SetCurrentStatementStartTimestamp();
+	StartTransactionCommand();
 
-    /* Initialize SPI */
-    if (SPI_connect() != SPI_OK_CONNECT)
-    {
-        ereport(ERROR, (errmsg("Failed to connect to SPI")));
-    }
+	/* Initialize SPI */
+	if (SPI_connect() != SPI_OK_CONNECT)
+	{
+		ereport(ERROR, (errmsg("Failed to connect to SPI")));
+	}
 
-    PushActiveSnapshot(GetTransactionSnapshot());
+	PushActiveSnapshot(GetTransactionSnapshot());
 
-    /* Execute the query */
-    spi_result = SPI_execute(query, true, 0);
-    if (spi_result != SPI_OK_SELECT)
-    {
-        SPI_finish();
-        ereport(ERROR, (errmsg("Query failed execution.")));
-    }
+	/* Execute the query */
+	spi_result = SPI_execute(query, true, 0);
+	if (spi_result != SPI_OK_SELECT)
+	{
+		SPI_finish();
+		ereport(ERROR, (errmsg("Query failed execution.")));
+	}
 
-    /* Process the result */
-    if (SPI_processed > 0)
-    {
-        tuptable = SPI_tuptable;
+	/* Process the result */
+	if (SPI_processed > 0)
+	{
+		tuptable = SPI_tuptable;
 
-        for (int row_count = 0; row_count < SPI_processed; row_count++)
-        {
-            char *null_value = "NULL";
-            char  *value_str[PT_SETTINGS_COL_COUNT];
+		for (int row_count = 0; row_count < SPI_processed; row_count++)
+		{
+			char	   *null_value = "NULL";
+			char	   *value_str[PT_SETTINGS_COL_COUNT];
 
 
-            /* Construct and initiate the active extensions array block. */
-            construct_json_block(msg_json, sz_json, "setting", "", PT_JSON_BLOCK_ARRAY_VALUE, &ptss->json_file_indent);
-            write_json_to_file(fp, msg_json);
+			/* Construct and initiate the active extensions array block. */
+			construct_json_block(msg_json, sz_json, "setting", "", PT_JSON_BLOCK_ARRAY_VALUE, &ptss->json_file_indent);
+			write_json_to_file(fp, msg_json);
 
-            /* Process the tuple as needed */
-            for (int col_count = 1; col_count <= tuptable->tupdesc->natts; col_count++)
-            {
-                char *str = SPI_getvalue(tuptable->vals[row_count], tuptable->tupdesc, col_count);
-                value_str[col_count - 1] = (str == NULL || str[0] == '\0') ? null_value : str;
+			/* Process the tuple as needed */
+			for (int col_count = 1; col_count <= tuptable->tupdesc->natts; col_count++)
+			{
+				char	   *str = SPI_getvalue(tuptable->vals[row_count], tuptable->tupdesc, col_count);
 
-                flags = (col_count == tuptable->tupdesc->natts) ? (PT_JSON_BLOCK_SIMPLE | PT_JSON_BLOCK_LAST) : PT_JSON_BLOCK_SIMPLE;
+				value_str[col_count - 1] = (str == NULL || str[0] == '\0') ? null_value : str;
 
-                construct_json_block(msg_json, sz_json, NameStr(tuptable->tupdesc->attrs[col_count - 1].attname),
-                                            value_str[col_count - 1], flags, &ptss->json_file_indent);
-                write_json_to_file(fp, msg_json);
-            }
+				flags = (col_count == tuptable->tupdesc->natts) ? (PT_JSON_BLOCK_SIMPLE | PT_JSON_BLOCK_LAST) : PT_JSON_BLOCK_SIMPLE;
 
-            /* Close the array */
-            construct_json_block(msg, sizeof(msg), "setting", "", PT_JSON_ARRAY_END | PT_JSON_BLOCK_LAST, &ptss->json_file_indent);
-            strcpy(msg_json, msg);
+				construct_json_block(msg_json, sz_json, NameStr(tuptable->tupdesc->attrs[col_count - 1].attname),
+									 value_str[col_count - 1], flags, &ptss->json_file_indent);
+				write_json_to_file(fp, msg_json);
+			}
 
-            /* Close the extension block */
-            flags = (row_count == (SPI_processed - 1)) ? (PT_JSON_BLOCK_END | PT_JSON_BLOCK_LAST) : PT_JSON_BLOCK_END;
-            construct_json_block(msg, sizeof(msg), "setting", "", flags, &ptss->json_file_indent);
-            strlcat(msg_json, msg, sz_json);
+			/* Close the array */
+			construct_json_block(msg, sizeof(msg), "setting", "", PT_JSON_ARRAY_END | PT_JSON_BLOCK_LAST, &ptss->json_file_indent);
+			strcpy(msg_json, msg);
 
-            /* Write both to file. */
-            write_json_to_file(fp, msg_json);
-        }
-    }
+			/* Close the extension block */
+			flags = (row_count == (SPI_processed - 1)) ? (PT_JSON_BLOCK_END | PT_JSON_BLOCK_LAST) : PT_JSON_BLOCK_END;
+			construct_json_block(msg, sizeof(msg), "setting", "", flags, &ptss->json_file_indent);
+			strlcat(msg_json, msg, sz_json);
 
-    /* Close the array */
-    construct_json_block(msg, sizeof(msg), "settings", "", PT_JSON_ARRAY_END, &ptss->json_file_indent);
-    strcpy(msg_json, msg);
+			/* Write both to file. */
+			write_json_to_file(fp, msg_json);
+		}
+	}
 
-    /* Write both to file. */
-    write_json_to_file(fp, msg_json);
+	/* Close the array */
+	construct_json_block(msg, sizeof(msg), "settings", "", PT_JSON_ARRAY_END, &ptss->json_file_indent);
+	strcpy(msg_json, msg);
 
-    /* Clean up */
-    fclose(fp);
+	/* Write both to file. */
+	write_json_to_file(fp, msg_json);
 
-    /* Disconnect from SPI */
-    SPI_finish();
+	/* Clean up */
+	fclose(fp);
 
-    PopActiveSnapshot();
-    CommitTransactionCommand();
+	/* Disconnect from SPI */
+	SPI_finish();
+
+	PopActiveSnapshot();
+	CommitTransactionCommand();
 }
 
 #undef PT_SETTINGS_COL_COUNT
@@ -683,59 +690,59 @@ write_pg_settings(void)
 static List *
 get_database_list(void)
 {
-    List          *dblist = NIL;
-    Relation      rel;
-    TableScanDesc scan;
-    HeapTuple     tup;
-    MemoryContext oldcxt;
-    ScanKeyData   key;
+	List	   *dblist = NIL;
+	Relation	rel;
+	TableScanDesc scan;
+	HeapTuple	tup;
+	MemoryContext oldcxt;
+	ScanKeyData key;
 
-    /* Start a transaction to access pg_database */
-    StartTransactionCommand();
+	/* Start a transaction to access pg_database */
+	StartTransactionCommand();
 
-    rel = relation_open(DatabaseRelationId, AccessShareLock);
+	rel = relation_open(DatabaseRelationId, AccessShareLock);
 
-    /* Ignore databases that we can't connect to */
-    ScanKeyInit(&key,
-                Anum_pg_database_datallowconn,
-                BTEqualStrategyNumber,
-                F_BOOLEQ,
-                BoolGetDatum(true));
+	/* Ignore databases that we can't connect to */
+	ScanKeyInit(&key,
+				Anum_pg_database_datallowconn,
+				BTEqualStrategyNumber,
+				F_BOOLEQ,
+				BoolGetDatum(true));
 
-    scan = table_beginscan_catalog(rel, 1, &key);
+	scan = table_beginscan_catalog(rel, 1, &key);
 
-    while (HeapTupleIsValid(tup = heap_getnext(scan, ForwardScanDirection)))
-    {
-        PTDatabaseInfo  *dbinfo;
-        int64 datsize;
-        Form_pg_database pgdatabase = (Form_pg_database) GETSTRUCT(tup);
+	while (HeapTupleIsValid(tup = heap_getnext(scan, ForwardScanDirection)))
+	{
+		PTDatabaseInfo *dbinfo;
+		int64		datsize;
+		Form_pg_database pgdatabase = (Form_pg_database) GETSTRUCT(tup);
 
-        datsize = DatumGetInt64(DirectFunctionCall1(pg_database_size_oid, ObjectIdGetDatum(pgdatabase->oid)));
+		datsize = DatumGetInt64(DirectFunctionCall1(pg_database_size_oid, ObjectIdGetDatum(pgdatabase->oid)));
 
-        /* Switch to our memory context instead of the transaction one */
-        oldcxt = MemoryContextSwitchTo(pt_cxt);
-        dbinfo = (PTDatabaseInfo *) palloc(sizeof(PTDatabaseInfo));
+		/* Switch to our memory context instead of the transaction one */
+		oldcxt = MemoryContextSwitchTo(pt_cxt);
+		dbinfo = (PTDatabaseInfo *) palloc(sizeof(PTDatabaseInfo));
 
-        /* Fill in the structure */
-        dbinfo->datid = pgdatabase->oid;
-        strncpy(dbinfo->datname, NameStr(pgdatabase->datname), sizeof(dbinfo->datname));
-        dbinfo->datsize = datsize;
+		/* Fill in the structure */
+		dbinfo->datid = pgdatabase->oid;
+		strncpy(dbinfo->datname, NameStr(pgdatabase->datname), sizeof(dbinfo->datname));
+		dbinfo->datsize = datsize;
 
-        /* Add to the list */
-        dblist = lappend(dblist, dbinfo);
+		/* Add to the list */
+		dblist = lappend(dblist, dbinfo);
 
-        /* Switch back the memory context */
-        pt_cxt = MemoryContextSwitchTo(oldcxt);
-    }
+		/* Switch back the memory context */
+		pt_cxt = MemoryContextSwitchTo(oldcxt);
+	}
 
-    /* Clean up */
-    table_endscan(scan);
-    relation_close(rel, AccessShareLock);
+	/* Clean up */
+	table_endscan(scan);
+	relation_close(rel, AccessShareLock);
 
-    CommitTransactionCommand();
+	CommitTransactionCommand();
 
-    /* Return the list */
-    return dblist;
+	/* Return the list */
+	return dblist;
 }
 
 /*
@@ -744,49 +751,49 @@ get_database_list(void)
 static List *
 get_extensions_list(PTDatabaseInfo *dbinfo, MemoryContext cxt)
 {
-    List *extlist = NIL;
-    Relation rel;
-    TableScanDesc scan;
-    HeapTuple tup;
-    MemoryContext oldcxt;
+	List	   *extlist = NIL;
+	Relation	rel;
+	TableScanDesc scan;
+	HeapTuple	tup;
+	MemoryContext oldcxt;
 
-    Assert(dbinfo);
+	Assert(dbinfo);
 
-    /* Start a transaction to access pg_extensions */
-    StartTransactionCommand();
+	/* Start a transaction to access pg_extensions */
+	StartTransactionCommand();
 
-    /* Open the extension catalog... */
-    rel = table_open(ExtensionRelationId, AccessShareLock);
-    scan = table_beginscan_catalog(rel, 0, NULL);
+	/* Open the extension catalog... */
+	rel = table_open(ExtensionRelationId, AccessShareLock);
+	scan = table_beginscan_catalog(rel, 0, NULL);
 
-    while (HeapTupleIsValid(tup = heap_getnext(scan, ForwardScanDirection)))
-    {
-        PTExtensionInfo *extinfo;
-        Form_pg_extension extform = (Form_pg_extension) GETSTRUCT(tup);
+	while (HeapTupleIsValid(tup = heap_getnext(scan, ForwardScanDirection)))
+	{
+		PTExtensionInfo *extinfo;
+		Form_pg_extension extform = (Form_pg_extension) GETSTRUCT(tup);
 
-        /* Switch to the given memory context */
-        oldcxt = MemoryContextSwitchTo(cxt);
-        extinfo = (PTExtensionInfo *) palloc(sizeof(PTExtensionInfo));
+		/* Switch to the given memory context */
+		oldcxt = MemoryContextSwitchTo(cxt);
+		extinfo = (PTExtensionInfo *) palloc(sizeof(PTExtensionInfo));
 
-        /* Fill in the structure */
-        extinfo->db_data = dbinfo;
-        strncpy(extinfo->extname, NameStr(extform->extname), sizeof(extinfo->extname));
+		/* Fill in the structure */
+		extinfo->db_data = dbinfo;
+		strncpy(extinfo->extname, NameStr(extform->extname), sizeof(extinfo->extname));
 
-        /* Add to the list */
-        extlist = lappend(extlist, extinfo);
+		/* Add to the list */
+		extlist = lappend(extlist, extinfo);
 
-        /* Switch back the memory context */
-        cxt = MemoryContextSwitchTo(oldcxt);
-    }
+		/* Switch back the memory context */
+		cxt = MemoryContextSwitchTo(oldcxt);
+	}
 
-    /* Clean up */
-    table_endscan(scan);
-    table_close(rel, AccessShareLock);
+	/* Clean up */
+	table_endscan(scan);
+	table_close(rel, AccessShareLock);
 
-    CommitTransactionCommand();
+	CommitTransactionCommand();
 
-    /* Return the list */
-    return extlist;
+	/* Return the list */
+	return extlist;
 }
 
 /*
@@ -796,85 +803,85 @@ get_extensions_list(PTDatabaseInfo *dbinfo, MemoryContext cxt)
 static bool
 write_database_info(PTDatabaseInfo *dbinfo, List *extlist)
 {
-    char msg[2048] = {0};
-    char msg_json[4096] = {0};
-    size_t sz_json;
-    FILE *fp;
-    ListCell *lc;
-    int flags;
+	char		msg[2048] = {0};
+	char		msg_json[4096] = {0};
+	size_t		sz_json;
+	FILE	   *fp;
+	ListCell   *lc;
+	int			flags;
 
-    sz_json = sizeof(msg_json);
+	sz_json = sizeof(msg_json);
 
-    /* Open file in append mode. */
-    fp = json_file_open(ptss->dbtemp_filepath, "a+");
+	/* Open file in append mode. */
+	fp = json_file_open(ptss->dbtemp_filepath, "a+");
 
-    if (ptss->first_db_entry)
-    {
-        /* Construct and initiate the active extensions array block. */
-        construct_json_block(msg_json, sz_json, "", "databases", PT_JSON_ARRAY_START, &ptss->json_file_indent);
-        write_json_to_file(fp, msg_json);
-    }
-
-    /* Construct and initiate the active extensions array block. */
-    construct_json_block(msg_json, sz_json, "database", "value", PT_JSON_BLOCK_ARRAY_VALUE, &ptss->json_file_indent);
-    write_json_to_file(fp, msg_json);
-
-    /* Construct and write the database OID block. */
-    snprintf(msg, sizeof(msg), "%u", dbinfo->datid);
-    construct_json_block(msg_json, sz_json, "database_oid", msg, PT_JSON_BLOCK_SIMPLE, &ptss->json_file_indent);
-    write_json_to_file(fp, msg_json);
-
-    /* Construct and write the database size block. */
-    snprintf(msg, sizeof(msg), "%lu", dbinfo->datsize);
-    construct_json_block(msg_json, sz_json, "database_size", msg, PT_JSON_BLOCK_SIMPLE, &ptss->json_file_indent);
-    write_json_to_file(fp, msg_json);
-
-    /* Construct and initiate the active extensions array block. */
-    construct_json_block(msg_json, sz_json, "active_extensions", "value", PT_JSON_BLOCK_ARRAY_VALUE, &ptss->json_file_indent);
-    write_json_to_file(fp, msg_json);
-
-    /* Iterate through all extensions and those to the array. */
-    foreach(lc, extlist)
+	if (ptss->first_db_entry)
 	{
-        PTExtensionInfo *extinfo = lfirst(lc);
+		/* Construct and initiate the active extensions array block. */
+		construct_json_block(msg_json, sz_json, "", "databases", PT_JSON_ARRAY_START, &ptss->json_file_indent);
+		write_json_to_file(fp, msg_json);
+	}
 
-        flags = (list_tail(extlist) == lc) ? (PT_JSON_BLOCK_SIMPLE | PT_JSON_BLOCK_LAST) : PT_JSON_BLOCK_SIMPLE;
+	/* Construct and initiate the active extensions array block. */
+	construct_json_block(msg_json, sz_json, "database", "value", PT_JSON_BLOCK_ARRAY_VALUE, &ptss->json_file_indent);
+	write_json_to_file(fp, msg_json);
 
-        construct_json_block(msg_json, sz_json, "extension_name", extinfo->extname, flags, &ptss->json_file_indent);
-        write_json_to_file(fp, msg_json);
-    }
+	/* Construct and write the database OID block. */
+	snprintf(msg, sizeof(msg), "%u", dbinfo->datid);
+	construct_json_block(msg_json, sz_json, "database_oid", msg, PT_JSON_BLOCK_SIMPLE, &ptss->json_file_indent);
+	write_json_to_file(fp, msg_json);
 
-    /* Close the array and block and write to file */
-    construct_json_block(msg, sizeof(msg), "active_extensions", "active_extensions", PT_JSON_ARRAY_END | PT_JSON_BLOCK_END | PT_JSON_BLOCK_LAST, &ptss->json_file_indent);
-    strcpy(msg_json, msg);
-    write_json_to_file(fp, msg_json);
+	/* Construct and write the database size block. */
+	snprintf(msg, sizeof(msg), "%lu", dbinfo->datsize);
+	construct_json_block(msg_json, sz_json, "database_size", msg, PT_JSON_BLOCK_SIMPLE, &ptss->json_file_indent);
+	write_json_to_file(fp, msg_json);
 
-    /* Close the array */
-    construct_json_block(msg, sizeof(msg), "database", "", PT_JSON_ARRAY_END | PT_JSON_BLOCK_LAST, &ptss->json_file_indent);
-    strcpy(msg_json, msg);
+	/* Construct and initiate the active extensions array block. */
+	construct_json_block(msg_json, sz_json, "active_extensions", "value", PT_JSON_BLOCK_ARRAY_VALUE, &ptss->json_file_indent);
+	write_json_to_file(fp, msg_json);
 
-    /* Close the database block */
-    flags = (ptss->last_db_entry) ? (PT_JSON_BLOCK_END | PT_JSON_BLOCK_LAST) : PT_JSON_BLOCK_END;
-    construct_json_block(msg, sizeof(msg), "database", "", flags, &ptss->json_file_indent);
-    strlcat(msg_json, msg, sz_json);
+	/* Iterate through all extensions and those to the array. */
+	foreach(lc, extlist)
+	{
+		PTExtensionInfo *extinfo = lfirst(lc);
 
-    /* Write both to file. */
-    write_json_to_file(fp, msg_json);
+		flags = (list_tail(extlist) == lc) ? (PT_JSON_BLOCK_SIMPLE | PT_JSON_BLOCK_LAST) : PT_JSON_BLOCK_SIMPLE;
 
-    if (ptss->last_db_entry)
-    {
-        /* Close the array */
-        construct_json_block(msg, sizeof(msg), "databases", "", PT_JSON_ARRAY_END | PT_JSON_BLOCK_LAST, &ptss->json_file_indent);
-        strcpy(msg_json, msg);
+		construct_json_block(msg_json, sz_json, "extension_name", extinfo->extname, flags, &ptss->json_file_indent);
+		write_json_to_file(fp, msg_json);
+	}
 
-        /* Write both to file. */
-        write_json_to_file(fp, msg_json);
-    }
+	/* Close the array and block and write to file */
+	construct_json_block(msg, sizeof(msg), "active_extensions", "active_extensions", PT_JSON_ARRAY_END | PT_JSON_BLOCK_END | PT_JSON_BLOCK_LAST, &ptss->json_file_indent);
+	strcpy(msg_json, msg);
+	write_json_to_file(fp, msg_json);
 
-    /* Clean up */
-    fclose(fp);
+	/* Close the array */
+	construct_json_block(msg, sizeof(msg), "database", "", PT_JSON_ARRAY_END | PT_JSON_BLOCK_LAST, &ptss->json_file_indent);
+	strcpy(msg_json, msg);
 
-    return true;
+	/* Close the database block */
+	flags = (ptss->last_db_entry) ? (PT_JSON_BLOCK_END | PT_JSON_BLOCK_LAST) : PT_JSON_BLOCK_END;
+	construct_json_block(msg, sizeof(msg), "database", "", flags, &ptss->json_file_indent);
+	strlcat(msg_json, msg, sz_json);
+
+	/* Write both to file. */
+	write_json_to_file(fp, msg_json);
+
+	if (ptss->last_db_entry)
+	{
+		/* Close the array */
+		construct_json_block(msg, sizeof(msg), "databases", "", PT_JSON_ARRAY_END | PT_JSON_BLOCK_LAST, &ptss->json_file_indent);
+		strcpy(msg_json, msg);
+
+		/* Write both to file. */
+		write_json_to_file(fp, msg_json);
+	}
+
+	/* Clean up */
+	fclose(fp);
+
+	return true;
 }
 
 /*
@@ -883,202 +890,211 @@ write_database_info(PTDatabaseInfo *dbinfo, List *extlist)
 void
 percona_pg_telemetry_main(Datum main_arg)
 {
-	int rc = 0;
-    List *dblist = NIL;
-    ListCell *lc = NULL;
-    char json_pg_version[1024];
-    FILE *fp;
-    char msg[2048] = {0};
-    char msg_json[4096] = {0};
-    size_t sz_json = sizeof(msg_json);
-    bool first_time = true;
+	int			rc = 0;
+	List	   *dblist = NIL;
+	ListCell   *lc = NULL;
+	char		json_pg_version[1024];
+	FILE	   *fp;
+	char		msg[2048] = {0};
+	char		msg_json[4096] = {0};
+	size_t		sz_json = sizeof(msg_json);
+	bool		first_time = true;
 
-    /* Save the version in a JSON escaped stirng just to be safe. */
-    strcpy(json_pg_version, PG_VERSION);
+	/* Save the version in a JSON escaped stirng just to be safe. */
+	strcpy(json_pg_version, PG_VERSION);
 
-    /* Setup signal callbacks */
-    pqsignal(SIGTERM, pt_sigterm);
+	/* Setup signal callbacks */
+	pqsignal(SIGTERM, pt_sigterm);
 #if PG_VERSION_NUM >= 130000
-    pqsignal(SIGHUP, SignalHandlerForConfigReload);
+	pqsignal(SIGHUP, SignalHandlerForConfigReload);
 #else
-    pqsignal(SIGHUP, PostgresSigHupHandler);
+	pqsignal(SIGHUP, PostgresSigHupHandler);
 #endif
 
-    /* We can now receive signals */
-    BackgroundWorkerUnblockSignals();
+	/* We can now receive signals */
+	BackgroundWorkerUnblockSignals();
 
-    /* Initialize shmem */
-    pt_shmem_init();
+	/* Initialize shmem */
+	pt_shmem_init();
 
-    /* Load existing telemetry files */
-    load_telemery_files();
+	/* Load existing telemetry files */
+	load_telemery_files();
 
-    /* Set up connection */
-    BackgroundWorkerInitializeConnectionByOid(InvalidOid, InvalidOid, 0);
+	/* Set up connection */
+	BackgroundWorkerInitializeConnectionByOid(InvalidOid, InvalidOid, 0);
 
-    /* Set name to make percona_pg_telemetry visible in pg_stat_activity */
-    pgstat_report_appname("percona_pg_telemetry");
+	/* Set name to make percona_pg_telemetry visible in pg_stat_activity */
+	pgstat_report_appname("percona_pg_telemetry");
 
-    /* This is the context that we will allocate our data in */
-    pt_cxt = AllocSetContextCreate(TopMemoryContext, "Percona Telemetry Context", ALLOCSET_DEFAULT_SIZES);
+	/* This is the context that we will allocate our data in */
+	pt_cxt = AllocSetContextCreate(TopMemoryContext, "Percona Telemetry Context", ALLOCSET_DEFAULT_SIZES);
 
-    /* Should never really terminate unless... */
-    while (!sigterm_recvd && ptss->error_code == PT_SUCCESS)
+	/* Should never really terminate unless... */
+	while (!sigterm_recvd && ptss->error_code == PT_SUCCESS)
 	{
-        /* Don't sleep the first time */
-        if (first_time == false)
-        {
-            rc = WaitLatch(MyLatch,
-                        WL_LATCH_SET | WL_TIMEOUT | WL_POSTMASTER_DEATH,
-                        scrape_interval * 1000L,
-                        PG_WAIT_EXTENSION);
+		/* Don't sleep the first time */
+		if (first_time == false)
+		{
+			rc = WaitLatch(MyLatch,
+						   WL_LATCH_SET | WL_TIMEOUT | WL_POSTMASTER_DEATH,
+						   scrape_interval * 1000L,
+						   PG_WAIT_EXTENSION);
 
-            ResetLatch(MyLatch);
-        }
+			ResetLatch(MyLatch);
+		}
 
-        CHECK_FOR_INTERRUPTS();
+		CHECK_FOR_INTERRUPTS();
 
-        if (ConfigReloadPending)
-        {
-            ConfigReloadPending = false;
-            ProcessConfigFile(PGC_SIGHUP);
-        }
+		if (ConfigReloadPending)
+		{
+			ConfigReloadPending = false;
+			ProcessConfigFile(PGC_SIGHUP);
+		}
 
-        /* Don't do any processing but keep the launcher alive */
-        if (telemetry_enabled == false)
-            continue;
+		/* Don't do any processing but keep the launcher alive */
+		if (telemetry_enabled == false)
+			continue;
 
-        /* Time to end the loop as the server is shutting down */
+		/* Time to end the loop as the server is shutting down */
 		if ((rc & WL_POSTMASTER_DEATH) || ptss->error_code != PT_SUCCESS)
 			break;
 
-        /* We are not processing a cell at the moment. So, let's get the updated database list. */
-        if (dblist == NIL && (rc & WL_TIMEOUT || first_time))
-        {
-            char temp_buff[100];
+		/*
+		 * We are not processing a cell at the moment. So, let's get the
+		 * updated database list.
+		 */
+		if (dblist == NIL && (rc & WL_TIMEOUT || first_time))
+		{
+			char		temp_buff[100];
 
-            /* Data collection will start now */
-            first_time = false;
+			/* Data collection will start now */
+			first_time = false;
 
-            dblist = get_database_list();
+			dblist = get_database_list();
 
-            /* Set writing state to true */
-            Assert(ptss->write_in_progress == false);
-            ptss->write_in_progress = true;
+			/* Set writing state to true */
+			Assert(ptss->write_in_progress == false);
+			ptss->write_in_progress = true;
 
-            /* Open file for writing. */
-            fp = json_file_open(ptss->dbtemp_filepath, "w");
+			/* Open file for writing. */
+			fp = json_file_open(ptss->dbtemp_filepath, "w");
 
-            construct_json_block(msg_json, sz_json, "", "", PT_JSON_BLOCK_START, &ptss->json_file_indent);
-            write_json_to_file(fp, msg_json);
+			construct_json_block(msg_json, sz_json, "", "", PT_JSON_BLOCK_START, &ptss->json_file_indent);
+			write_json_to_file(fp, msg_json);
 
-            /* Construct and write the database size block. */
-            pg_snprintf(msg, sizeof(msg), "%lu", GetSystemIdentifier());
-            construct_json_block(msg_json, sz_json, "db_instance_id", msg, PT_JSON_KEY_VALUE_PAIR, &ptss->json_file_indent);
-            write_json_to_file(fp, msg_json);
+			/* Construct and write the database size block. */
+			pg_snprintf(msg, sizeof(msg), "%lu", GetSystemIdentifier());
+			construct_json_block(msg_json, sz_json, "db_instance_id", msg, PT_JSON_KEY_VALUE_PAIR, &ptss->json_file_indent);
+			write_json_to_file(fp, msg_json);
 
-            /* Construct and initiate the active extensions array block. */
-            construct_json_block(msg_json, sz_json, "pillar_version", json_pg_version, PT_JSON_KEY_VALUE_PAIR, &ptss->json_file_indent);
-            write_json_to_file(fp, msg_json);
+			/* Construct and initiate the active extensions array block. */
+			construct_json_block(msg_json, sz_json, "pillar_version", json_pg_version, PT_JSON_KEY_VALUE_PAIR, &ptss->json_file_indent);
+			write_json_to_file(fp, msg_json);
 
-            /* Construct and initiate the active extensions array block. */
-            pg_snprintf(msg, sizeof(msg), "%ld", server_uptime());
-            construct_json_block(msg_json, sz_json, "uptime", msg, PT_JSON_KEY_VALUE_PAIR, &ptss->json_file_indent);
-            write_json_to_file(fp, msg_json);
+			/* Construct and initiate the active extensions array block. */
+			pg_snprintf(msg, sizeof(msg), "%ld", server_uptime());
+			construct_json_block(msg_json, sz_json, "uptime", msg, PT_JSON_KEY_VALUE_PAIR, &ptss->json_file_indent);
+			write_json_to_file(fp, msg_json);
 
-            /* Construct and initiate the active extensions array block. */
-            pg_snprintf(temp_buff, sizeof(temp_buff), "%d", list_length(dblist));
-            construct_json_block(msg_json, sz_json, "databases_count", temp_buff, PT_JSON_KEY_VALUE_PAIR, &ptss->json_file_indent);
-            write_json_to_file(fp, msg_json);
+			/* Construct and initiate the active extensions array block. */
+			pg_snprintf(temp_buff, sizeof(temp_buff), "%d", list_length(dblist));
+			construct_json_block(msg_json, sz_json, "databases_count", temp_buff, PT_JSON_KEY_VALUE_PAIR, &ptss->json_file_indent);
+			write_json_to_file(fp, msg_json);
 
-            /* Let's close the file now so that processes may add their stuff. */
-            fclose(fp);
-        }
+			/* Let's close the file now so that processes may add their stuff. */
+			fclose(fp);
+		}
 
-        /* Must be a valid list */
-        if (dblist != NIL)
-        {
-            PTDatabaseInfo *dbinfo;
-            BgwHandleStatus status;
+		/* Must be a valid list */
+		if (dblist != NIL)
+		{
+			PTDatabaseInfo *dbinfo;
+			BgwHandleStatus status;
 
-            /* First or the next cell */
+			/* First or the next cell */
 #if PG_VERSION_NUM >= 130000
-            lc = (lc) ? lnext(dblist, lc) : list_head(dblist);
+			lc = (lc) ? lnext(dblist, lc) : list_head(dblist);
 #else
-            lc = (lc) ? lnext(lc) : list_head(dblist);
+			lc = (lc) ? lnext(lc) : list_head(dblist);
 #endif
 
-            ptss->first_db_entry = (lc == list_head(dblist));
+			ptss->first_db_entry = (lc == list_head(dblist));
 
-            /*
-             * We've reached end of the list. So, let's cleanup and go to
-             * sleep until the timer runs out. Also, we need to move the
-             * file to mark the process complete.
-             */
-            if (lc == NULL)
-            {
-                char filename[MAXPGPATH] = {0};
+			/*
+			 * We've reached end of the list. So, let's cleanup and go to
+			 * sleep until the timer runs out. Also, we need to move the file
+			 * to mark the process complete.
+			 */
+			if (lc == NULL)
+			{
+				char		filename[MAXPGPATH] = {0};
 
-                list_free_deep(dblist);
-                dblist = NIL;
+				list_free_deep(dblist);
+				dblist = NIL;
 
-                /* We should always have write_in_progress true here. */
-                Assert(ptss->write_in_progress == true);
+				/* We should always have write_in_progress true here. */
+				Assert(ptss->write_in_progress == true);
 
-                /* Open file, writing the closing bracket and close it. */
-                fp = json_file_open(ptss->dbtemp_filepath, "a+");
-                construct_json_block(msg_json, sz_json, "", "", PT_JSON_BLOCK_END | PT_JSON_BLOCK_LAST, &ptss->json_file_indent);
-                write_json_to_file(fp, msg_json);
-                fclose(fp);
+				/* Open file, writing the closing bracket and close it. */
+				fp = json_file_open(ptss->dbtemp_filepath, "a+");
+				construct_json_block(msg_json, sz_json, "", "", PT_JSON_BLOCK_END | PT_JSON_BLOCK_LAST, &ptss->json_file_indent);
+				write_json_to_file(fp, msg_json);
+				fclose(fp);
 
-                /* Generate and save the filename */
-                telemetry_file_next(generate_filename(filename));
+				/* Generate and save the filename */
+				telemetry_file_next(generate_filename(filename));
 
-                /* Change the file permissions before making it available to the agent. */
-                chmod(ptss->dbtemp_filepath, PT_FILE_MODE);
+				/*
+				 * Change the file permissions before making it available to
+				 * the agent.
+				 */
+				chmod(ptss->dbtemp_filepath, PT_FILE_MODE);
 
-	            /* Let's rename the temp file so that agent can pick it up. */
-	            if (rename(ptss->dbtemp_filepath, telemetry_curr_filename()) < 0)
-	            {
-                    ereport(LOG,
-                            (errcode_for_file_access(),
-                             errmsg("could not rename file \"%s\" to \"%s\": %m",
-                                    ptss->dbtemp_filepath,
-                                    telemetry_curr_filename())));
+				/* Let's rename the temp file so that agent can pick it up. */
+				if (rename(ptss->dbtemp_filepath, telemetry_curr_filename()) < 0)
+				{
+					ereport(LOG,
+							(errcode_for_file_access(),
+							 errmsg("could not rename file \"%s\" to \"%s\": %m",
+									ptss->dbtemp_filepath,
+									telemetry_curr_filename())));
 
-                    ptss->error_code = PT_FILE_ERROR;
-                    break;
-                }
+					ptss->error_code = PT_FILE_ERROR;
+					break;
+				}
 
-                ptss->write_in_progress = false;
-                continue;
-            }
+				ptss->write_in_progress = false;
+				continue;
+			}
 
-            ptss->last_db_entry = (list_tail(dblist) == lc);
-            dbinfo = lfirst(lc);
-            memcpy(&ptss->dbinfo, dbinfo, sizeof(PTDatabaseInfo));
+			ptss->last_db_entry = (list_tail(dblist) == lc);
+			dbinfo = lfirst(lc);
+			memcpy(&ptss->dbinfo, dbinfo, sizeof(PTDatabaseInfo));
 
-            /*
-             * Run the dynamic background worker and wait for it's completion
-             * so that we can wake up the launcher process.
-             */
-        	status = setup_background_worker("percona_pg_telemetry_worker",
-                                                "percona_pg_telemetry worker",
-                                                "percona_pg_telemetry worker",
-                                                ptss->dbinfo.datid, MyProcPid);
+			/*
+			 * Run the dynamic background worker and wait for it's completion
+			 * so that we can wake up the launcher process.
+			 */
+			status = setup_background_worker("percona_pg_telemetry_worker",
+											 "percona_pg_telemetry worker",
+											 "percona_pg_telemetry worker",
+											 ptss->dbinfo.datid, MyProcPid);
 
-            /* Wakeup the main process since the worker has stopped. */
-            if (status == BGWH_STOPPED)
-                SetLatch(&MyProc->procLatch);
-        }
-    }
+			/* Wakeup the main process since the worker has stopped. */
+			if (status == BGWH_STOPPED)
+				SetLatch(&MyProc->procLatch);
+		}
+	}
 
-    /* Shouldn't really ever be here unless an error was encountered. So exit with the error code */
-    ereport(LOG,
-            (errmsg("Percona Telemetry main (PID %d) exited due to errono %d with enabled = %d",
-                    MyProcPid,
-                    ptss->error_code,
-                    telemetry_enabled)));
+	/*
+	 * Shouldn't really ever be here unless an error was encountered. So exit
+	 * with the error code
+	 */
+	ereport(LOG,
+			(errmsg("Percona Telemetry main (PID %d) exited due to errono %d with enabled = %d",
+					MyProcPid,
+					ptss->error_code,
+					telemetry_enabled)));
 	PT_WORKER_EXIT(PT_SUCCESS);
 }
 
@@ -1088,35 +1104,35 @@ percona_pg_telemetry_main(Datum main_arg)
 void
 percona_pg_telemetry_worker(Datum main_arg)
 {
-    Oid datid;
-    MemoryContext tmpcxt;
-    List *extlist = NIL;
+	Oid			datid;
+	MemoryContext tmpcxt;
+	List	   *extlist = NIL;
 
-    /* Get the argument. Ensure that it's a valid oid in case of a worker */
-    datid = DatumGetObjectId(main_arg);
+	/* Get the argument. Ensure that it's a valid oid in case of a worker */
+	datid = DatumGetObjectId(main_arg);
 
-    /* Initialize shmem */
-    pt_shmem_init();
-    Assert(datid != InvalidOid && ptss->dbinfo.datid == datid);
+	/* Initialize shmem */
+	pt_shmem_init();
+	Assert(datid != InvalidOid && ptss->dbinfo.datid == datid);
 
-    /* Set up connection */
-    BackgroundWorkerInitializeConnectionByOid(datid, InvalidOid, 0);
+	/* Set up connection */
+	BackgroundWorkerInitializeConnectionByOid(datid, InvalidOid, 0);
 
-    /* This is the context that we will allocate our data in */
-    tmpcxt = AllocSetContextCreate(TopMemoryContext, "Percona Telemetry Context (tmp)", ALLOCSET_DEFAULT_SIZES);
+	/* This is the context that we will allocate our data in */
+	tmpcxt = AllocSetContextCreate(TopMemoryContext, "Percona Telemetry Context (tmp)", ALLOCSET_DEFAULT_SIZES);
 
-    /* Set name to make percona_pg_telemetry visible in pg_stat_activity */
-    pgstat_report_appname("percona_pg_telemetry_worker");
+	/* Set name to make percona_pg_telemetry visible in pg_stat_activity */
+	pgstat_report_appname("percona_pg_telemetry_worker");
 
-    /* Get the settings */
-    if (ptss->first_db_entry)
-        write_pg_settings();
+	/* Get the settings */
+	if (ptss->first_db_entry)
+		write_pg_settings();
 
-    extlist = get_extensions_list(&ptss->dbinfo, tmpcxt);
+	extlist = get_extensions_list(&ptss->dbinfo, tmpcxt);
 
-    if (write_database_info(&ptss->dbinfo, extlist) == false)
-        PT_WORKER_EXIT(PT_FILE_ERROR);
+	if (write_database_info(&ptss->dbinfo, extlist) == false)
+		PT_WORKER_EXIT(PT_FILE_ERROR);
 
-    /* Ending the worker... */
-    PT_WORKER_EXIT(PT_SUCCESS);
+	/* Ending the worker... */
+	PT_WORKER_EXIT(PT_SUCCESS);
 }
