@@ -1,5 +1,7 @@
 name: postgresql-12-build
-on: [push]
+on:
+  push:
+  pull_request:
 
 jobs:
   build:
