@@ -1,0 +1,15 @@
+Source: percona-pg-telemetry
+Section: database
+Priority: optional
+Maintainer: Percona Development Team <info@percona.com>
+Build-Depends:
+ debhelper (>= 9),
+ postgresql-server-dev-all (>= 153~) | percona-postgresql-server-dev-all (>= 153~),
+
+Package: percona-pg-telemetryPGVERSION
+Architecture: any
+Depends:
+ percona-telemetry-agent,
+ ${misc:Depends},
+ ${shlibs:Depends},
+Description:The percona_pg_telemetry is an extension for Percona telemetry data collection for PostgreSQL.

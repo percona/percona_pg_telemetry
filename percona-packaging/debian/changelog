@@ -1,0 +1,5 @@
+percona-pg-telemetry (1.0.0-1) unstable; urgency=medium
+
+  * Initial build.
+
+ -- Surabhi Bhat <surabhi.bhat@percona.com>  Fri, 26 Apr 2024 19:20:11 +0100

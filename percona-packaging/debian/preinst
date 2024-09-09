@@ -1,0 +1,11 @@
+#!/bin/sh
+# preinst script for percona-pg-telemetry
+#
+# see: dh_installdeb(1)
+
+# create a postgres group and user
+if ! getent passwd postgres > /dev/null 2>&1; then
+  groupadd -g 26 -o -r postgres >/dev/null 2>&1 || :
+  /usr/sbin/useradd -M -g postgres -s /bin/bash \
+  -c "PostgreSQL Server" -u 26 postgres >/dev/null 2>&1 || :
+fi
