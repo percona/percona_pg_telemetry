@@ -85,7 +85,7 @@ static shmem_request_hook_type prev_shmem_request_hook = NULL;
 static BgwHandleStatus setup_background_worker(const char *bgw_function_name, const char *bgw_name, const char *bgw_type, Oid datid, pid_t bgw_notify_pid);
 static void start_leader(void);
 static long server_uptime(void);
-static void load_telemery_files(void);
+static void load_telemetry_files(void);
 static char *generate_filename(char *filename);
 static bool validate_dir(char *folder_path);
 
@@ -245,7 +245,7 @@ telemetry_file_next(char *filename)
  * Load all telemetry files from the telemetry directory.
  */
 static void
-load_telemery_files(void)
+load_telemetry_files(void)
 {
 	DIR		   *d;
 	struct dirent *de;
@@ -918,7 +918,7 @@ percona_pg_telemetry_main(Datum main_arg)
 	pt_shmem_init();
 
 	/* Load existing telemetry files */
-	load_telemery_files();
+	load_telemetry_files();
 
 	/* Set up connection */
 	BackgroundWorkerInitializeConnectionByOid(InvalidOid, InvalidOid, 0);

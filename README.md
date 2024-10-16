@@ -1,9 +1,9 @@
-[![postgresql-12-build](https://github.com/Percona-Lab/percona_pg_telemetry/actions/workflows/postgresql-12-build.yml/badge.svg)](https://github.com/Percona-Lab/percona_pg_telemetry/actions/workflows/postgresql-12-build.yml)
-[![postgresql-13-build](https://github.com/Percona-Lab/percona_pg_telemetry/actions/workflows/postgresql-13-build.yml/badge.svg)](https://github.com/Percona-Lab/percona_pg_telemetry/actions/workflows/postgresql-13-build.yml)
-[![postgresql-14-build](https://github.com/Percona-Lab/percona_pg_telemetry/actions/workflows/postgresql-14-build.yml/badge.svg)](https://github.com/Percona-Lab/percona_pg_telemetry/actions/workflows/postgresql-14-build.yml)
-[![postgresql-15-build](https://github.com/Percona-Lab/percona_pg_telemetry/actions/workflows/postgresql-15-build.yml/badge.svg)](https://github.com/Percona-Lab/percona_pg_telemetry/actions/workflows/postgresql-15-build.yml)
-[![postgresql-16-build](https://github.com/Percona-Lab/percona_pg_telemetry/actions/workflows/postgresql-16-build.yml/badge.svg)](https://github.com/Percona-Lab/percona_pg_telemetry/actions/workflows/postgresql-16-build.yml)
-[![postgresql-17-build](https://github.com/Percona-Lab/percona_pg_telemetry/actions/workflows/postgresql-17-build.yml/badge.svg)](https://github.com/Percona-Lab/percona_pg_telemetry/actions/workflows/postgresql-17-build.yml)
+[![postgresql-12-build](https://github.com/percona/percona_pg_telemetry/actions/workflows/postgresql-12-build.yml/badge.svg)](https://github.com/Percona-Lab/percona_pg_telemetry/actions/workflows/postgresql-12-build.yml)
+[![postgresql-13-build](https://github.com/percona/percona_pg_telemetry/actions/workflows/postgresql-13-build.yml/badge.svg)](https://github.com/Percona-Lab/percona_pg_telemetry/actions/workflows/postgresql-13-build.yml)
+[![postgresql-14-build](https://github.com/percona/percona_pg_telemetry/actions/workflows/postgresql-14-build.yml/badge.svg)](https://github.com/Percona-Lab/percona_pg_telemetry/actions/workflows/postgresql-14-build.yml)
+[![postgresql-15-build](https://github.com/percona/percona_pg_telemetry/actions/workflows/postgresql-15-build.yml/badge.svg)](https://github.com/Percona-Lab/percona_pg_telemetry/actions/workflows/postgresql-15-build.yml)
+[![postgresql-16-build](https://github.com/percona/percona_pg_telemetry/actions/workflows/postgresql-16-build.yml/badge.svg)](https://github.com/Percona-Lab/percona_pg_telemetry/actions/workflows/postgresql-16-build.yml)
+[![postgresql-17-build](https://github.com/percona/percona_pg_telemetry/actions/workflows/postgresql-17-build.yml/badge.svg)](https://github.com/Percona-Lab/percona_pg_telemetry/actions/workflows/postgresql-17-build.yml)
 
 # Percona Telemetry Extension for PostgreSQL
 
@@ -97,10 +97,10 @@ To build `percona_pg_telemetry` from source code, you require the following:
 * postgresql-devel | postgresql-server-dev-all
 
 
-You can download the source code of the latest release of `percona_pg_telemetry` from [the releases page on GitHub](https://github.com/Percona-Lab/percona_pg_telemetry/releases) or using git:
+You can download the source code of the latest release of `percona_pg_telemetry` from [the releases page on GitHub](https://github.com/percona/percona_pg_telemetry/releases) or using git:
 
 ```
-git clone git://github.com/Percona-Lab/percona_pg_telemetry.git
+git clone git://github.com/percona/percona_pg_telemetry.git
 ```
 
 Compile and install the extension
