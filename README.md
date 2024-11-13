@@ -5,6 +5,9 @@
 [![postgresql-16-build](https://github.com/percona/percona_pg_telemetry/actions/workflows/postgresql-16-build.yml/badge.svg)](https://github.com/Percona-Lab/percona_pg_telemetry/actions/workflows/postgresql-16-build.yml)
 [![postgresql-17-build](https://github.com/percona/percona_pg_telemetry/actions/workflows/postgresql-17-build.yml/badge.svg)](https://github.com/Percona-Lab/percona_pg_telemetry/actions/workflows/postgresql-17-build.yml)
 
+[![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/percona/percona_pg_telemetry/badge)](https://scorecard.dev/viewer/?uri=github.com/percona/percona_pg_telemetry)
+[![Forum](https://img.shields.io/badge/Forum-join-brightgreen)](https://forums.percona.com/)
+
 # Percona Telemetry Extension for PostgreSQL
 
 Welcome to `percona_pg_telemetry` - extension for Percona telemetry data collection for PostgreSQL!
