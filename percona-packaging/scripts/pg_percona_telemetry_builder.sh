@@ -211,7 +211,7 @@ install_deps() {
 	if [ x"$RHEL" = x8 ]; then
             yum -y install python2-devel
 	    llvm_version=$(yum list --showduplicates llvm-devel | grep "17.0" | grep llvm | awk '{print $2}' | head -n 1)
-	    yum -y install llvm-devel--${llvm_version}
+	    yum -y install llvm-devel-${llvm_version}
         else
             yum -y install python-devel llvm-devel
         fi
