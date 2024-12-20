@@ -640,7 +640,7 @@ write_pg_settings(void)
 			{
 				char	   *str = SPI_getvalue(tuptable->vals[row_count], tuptable->tupdesc, col_count);
 
-				char *value = (str == NULL || str[0] == '\0') ? null_value : str;
+				char	   *value = (str == NULL || str[0] == '\0') ? null_value : str;
 
 				flags = (col_count == tuptable->tupdesc->natts) ? (PT_JSON_KEY_VALUE | PT_JSON_LAST_ELEMENT) : PT_JSON_KEY_VALUE;
 

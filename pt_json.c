@@ -71,7 +71,8 @@ construct_json_block(char *buf, size_t buf_sz, char *key, char *raw_value, int f
 	char	   *value = NULL;
 	char		str[2048] = {0};
 	char		fmt_str[2048] = {0};
-	char 		comma = (flags & PT_JSON_LAST_ELEMENT) ? '\0' : ','; 
+	char		comma = (flags & PT_JSON_LAST_ELEMENT) ? '\0' : ',';
+
 	/* Make the string empty so that we can always concat. */
 	buf[0] = '\0';
 
@@ -92,7 +93,8 @@ construct_json_block(char *buf, size_t buf_sz, char *key, char *raw_value, int f
 
 	if (flags & PT_JSON_VALUE)
 	{
-		char v[2048] = {0};
+		char		v[2048] = {0};
+
 		snprintf(v, sizeof(v), "\"%s\"%c", value, comma);
 
 		strlcat(str, v, sizeof(str));
@@ -102,7 +104,7 @@ construct_json_block(char *buf, size_t buf_sz, char *key, char *raw_value, int f
 
 	if (flags & PT_JSON_ARRAY_START)
 	{
-		strlcat(str, "[", sizeof(str));	
+		strlcat(str, "[", sizeof(str));
 		PT_FORMAT_JSON(fmt_str, sizeof(fmt_str), str, (*json_file_indent));
 		strlcat(buf, fmt_str, buf_sz);
 
