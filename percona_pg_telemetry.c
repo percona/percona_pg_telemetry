@@ -819,7 +819,7 @@ write_database_info(PTDatabaseInfo *dbinfo, List *extlist)
 
 	/* Construct and write the database size. */
 	snprintf(str, sizeof(str), "%lu", dbinfo->datsize);
-	construct_json_block(buf, buf_size, "database", str, PT_JSON_KEY_VALUE, &ptss->json_file_indent);
+	construct_json_block(buf, buf_size, "size", str, PT_JSON_KEY_VALUE, &ptss->json_file_indent);
 	write_json_to_file(fp, buf);
 
 	/* Start active extensions array block. */
