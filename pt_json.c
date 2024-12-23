@@ -15,14 +15,14 @@
 #include <sys/stat.h>
 
 /* Local functions */
-static char *json_fix_value(char *str);
+static char *json_escape_str(char *str);
 
 /*
- * Fixes a JSON string to avoid malformation of a json value. Returns
+ * Escapes a JSON string to avoid malformation of a json value. Returns
  * a palloced string that caller must pfree.
  */
 char *
-json_fix_value(char *str)
+json_escape_str(char *str)
 {
 	int			i;
 	int			len;
@@ -42,13 +42,9 @@ json_fix_value(char *str)
 
 	for (i = 0; i < len; i++)
 	{
+		/* Escape the quote and backslash characters. */
 		if (str[i] == '"' || str[i] == '\\')
-		{
 			*s++ = '\\';
-			*s++ = str[i];
-
-			continue;
-		}
 
 		*s++ = str[i];
 	}
@@ -77,7 +73,7 @@ construct_json_block(char *buf, size_t buf_sz, char *key, char *raw_value, int f
 	buf[0] = '\0';
 
 	if (raw_value)
-		value = json_fix_value(raw_value);
+		value = json_escape_str(raw_value);
 
 	if (flags & PT_JSON_KEY)
 		snprintf(str, sizeof(str), "\"%s\": ", key);

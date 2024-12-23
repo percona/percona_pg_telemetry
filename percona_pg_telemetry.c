@@ -867,15 +867,11 @@ percona_pg_telemetry_main(Datum main_arg)
 	int			rc = 0;
 	List	   *dblist = NIL;
 	ListCell   *lc = NULL;
-	char		json_pg_version[1024];
 	FILE	   *fp;
 	char		str[2048] = {0};
 	char		buf[4096] = {0};
 	size_t		buf_size = sizeof(buf);
 	bool		first_time = true;
-
-	/* Save the version in a JSON escaped stirng just to be safe. */
-	strcpy(json_pg_version, PG_VERSION);
 
 	/* Setup signal callbacks */
 	pqsignal(SIGTERM, pt_sigterm);
@@ -962,7 +958,7 @@ percona_pg_telemetry_main(Datum main_arg)
 			write_json_to_file(fp, buf);
 
 			/* Construct and initiate the active extensions array block. */
-			construct_json_block(buf, buf_size, "pillar_version", json_pg_version, PT_JSON_KEY_VALUE, &ptss->json_file_indent);
+			construct_json_block(buf, buf_size, "pillar_version", PG_VERSION, PT_JSON_KEY_VALUE, &ptss->json_file_indent);
 			write_json_to_file(fp, buf);
 
 			/* Construct and initiate the active extensions array block. */
