@@ -56,10 +56,9 @@ json_escape_str(char *str)
 }
 
 /*
- * Construct a JSON block for writing.
- *
- * NOTE: We are not escape any quote characters in key or value strings, as
- * we don't expect to encounter that in extension names.
+ * Construct a JSON block for writing. The function created json segment based
+ * on flags argument and provided key and value. json_file_indent is used
+ * to keep track of the indentation level. Result is written to the provided buffer.
  */
 char *
 construct_json_block(char *buf, size_t buf_sz, char *key, char *raw_value, int flags, int *json_file_indent)
@@ -136,19 +135,19 @@ construct_json_block(char *buf, size_t buf_sz, char *key, char *raw_value, int f
 }
 
 /*
- * Open a file in the given mode.
+ * Open telemetry file in the given mode.
  */
 FILE *
-json_file_open(char *pathname, char *mode)
+open_telemetry_file(char *filename, char *mode)
 {
 	FILE	   *fp;
 
-	fp = fopen(pathname, mode);
+	fp = fopen(filename, mode);
 	if (fp == NULL)
 	{
 		ereport(LOG,
 				(errcode_for_file_access(),
-				 errmsg("Could not open file %s for writing.", pathname)));
+				 errmsg("Could not open file %s for writing.", filename)));
 		PT_WORKER_EXIT(PT_FILE_ERROR);
 	}
 
@@ -156,16 +155,16 @@ json_file_open(char *pathname, char *mode)
 }
 
 /*
- * Write JSON to file.
+ * Write data to telemetry file.
  */
 void
-write_json_to_file(FILE *fp, char *json_str)
+write_telemetry_file(FILE *fp, char *data)
 {
 	int			len;
 	int			bytes_written;
 
-	len = strlen(json_str);
-	bytes_written = fwrite(json_str, 1, len, fp);
+	len = strlen(data);
+	bytes_written = fwrite(data, 1, len, fp);
 
 	if (len != bytes_written)
 	{
