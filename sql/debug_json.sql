@@ -34,10 +34,16 @@ WHERE   '"' || system_identifier || '"' = (SELECT CAST(read_json_file()::JSON->'
 SELECT  'matches' AS pillar_version
 WHERE   '"' || current_setting('server_version') || '"' = (SELECT CAST(read_json_file()::JSON->'pillar_version' AS VARCHAR));
 
-SELECT  'matches' AS settings
-FROM    pg_settings
-WHERE   name NOT LIKE 'plpgsql.%' AND vartype != 'string'
-HAVING  COUNT(*) = (SELECT json_array_length(read_json_file()::JSON->'settings'));
+WITH settings_comparison AS (
+    SELECT name
+    FROM pg_settings
+    FULL OUTER JOIN json_object_keys(read_json_file()::JSON->'settings') AS json_keys
+    ON json_keys = name
+    WHERE name NOT LIKE 'plpgsql.%' AND vartype != 'string' AND json_keys IS NULL AND name IS NULL
+)
+SELECT 'matches' AS settings
+WHERE NOT EXISTS (SELECT 1 FROM settings_comparison);
+
 
 SELECT  'matches' AS databases_count
 FROM    pg_database
@@ -54,13 +60,15 @@ HAVING  COUNT(*) = (
                 );
 -- Databases count will fail if you have any preexisting databases other than the standard template1 and postgres
 
-SELECT  'matches' AS databases_count_calc
-FROM    pg_database
-WHERE   datallowconn = true
-HAVING  COUNT(*) = (
-                    SELECT  json_array_length(read_json_file()::JSON->'databases')
-                            + CAST(NOT EXISTS (SELECT * FROM pg_settings where name = 'percona_pg_telemetry.path') AS INTEGER)
-                );
+WITH databases_comparison AS (
+    SELECT datname
+    FROM pg_database
+    FULL OUTER JOIN json_object_keys(read_json_file()::JSON->'databases') AS json_keys
+    ON json_keys = datname
+    WHERE datallowconn = true AND json_keys IS NULL AND datname IS NULL
+)
+SELECT 'matches' AS databases_count_calc
+WHERE NOT EXISTS (SELECT 1 FROM databases_comparison);
 -- Databases count will fail if you have any preexisting databases other than the standard template1 and postgres
 
 DROP EXTENSION percona_pg_telemetry;
