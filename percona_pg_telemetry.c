@@ -585,7 +585,7 @@ write_pg_settings(void)
 {
 	SPITupleTable *tuptable;
 	int			spi_result;
-	char	   *query = "SELECT name, unit, setting, reset_val, boot_val FROM pg_settings where vartype != 'string'";
+	char	   *query = "SELECT name, unit, setting FROM pg_settings where vartype != 'string'";
 	char		buf[4096] = {0};
 	size_t		buf_size = sizeof(buf);
 	FILE	   *fp;
