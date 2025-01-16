@@ -577,8 +577,7 @@ server_uptime(void)
 
 
 /*
- * Getting pg_settings values:
- * -> name, units, setting, boot_val, and reset_val
+ * Write PG settings to the telemetry file excluding string type settings, because it can expose sensitive information.
  */
 static void
 write_pg_settings(void)
