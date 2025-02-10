@@ -55,12 +55,14 @@ You can find the configuration parameters of the `percona_pg_telemetry` extensio
 
   * Outputs the version of the extension.
 
-2. `percona_pg_telemetry_status`
+2. `percona_pg_telemetry_status()`
 
   * OUT: latest_output_filename   - TEXT
     - Path of the JSON output file.
   * OUT: pt_enabled               - BOOLEAN
     - True if telemetry data collection is enabled.
+
+> **NOTE** Functions are only visible if extension has already been created using 'Create extension percona_pg_telemetry;'.
 
 ### Setup
 
