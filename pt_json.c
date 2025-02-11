@@ -15,14 +15,14 @@
 #include <sys/stat.h>
 
 /* Local functions */
-static char *json_fix_value(char *str);
+static char *json_escape_str(char *str);
 
 /*
- * Fixes a JSON string to avoid malformation of a json value. Returns
+ * Escapes a JSON string to avoid malformation of a json value. Returns
  * a palloced string that caller must pfree.
  */
 char *
-json_fix_value(char *str)
+json_escape_str(char *str)
 {
 	int			i;
 	int			len;
@@ -42,13 +42,9 @@ json_fix_value(char *str)
 
 	for (i = 0; i < len; i++)
 	{
+		/* Escape the quote and backslash characters. */
 		if (str[i] == '"' || str[i] == '\\')
-		{
 			*s++ = '\\';
-			*s++ = str[i];
-
-			continue;
-		}
 
 		*s++ = str[i];
 	}
@@ -60,62 +56,52 @@ json_fix_value(char *str)
 }
 
 /*
- * Construct a JSON block for writing.
- *
- * NOTE: We are not escape any quote characters in key or value strings, as
- * we don't expect to encounter that in extension names.
+ * Construct a JSON block for writing. The function created json segment based
+ * on flags argument and provided key and value. json_file_indent is used
+ * to keep track of the indentation level. Result is written to the provided buffer.
  */
 char *
-construct_json_block(char *msg_block, size_t msg_block_sz, char *key, char *raw_value, int flags, int *json_file_indent)
+construct_json_block(char *buf, size_t buf_sz, char *key, char *raw_value, int flags, int *json_file_indent)
 {
 	char	   *value = NULL;
-	char		msg[2048] = {0};
-	char		msg_json[2048] = {0};
+	char		str[2048] = {0};
+	char		fmt_str[2048] = {0};
+	char		comma = (flags & PT_JSON_LAST_ELEMENT) ? '\0' : ',';
 
 	/* Make the string empty so that we can always concat. */
-	msg_block[0] = '\0';
+	buf[0] = '\0';
 
 	if (raw_value)
-		value = json_fix_value(raw_value);
+		value = json_escape_str(raw_value);
 
-	if (flags & PT_JSON_BLOCK_START)
+	if (flags & PT_JSON_KEY)
+		snprintf(str, sizeof(str), "\"%s\": ", key);
+
+	if (flags & PT_JSON_OBJECT_START)
 	{
-		PT_FORMAT_JSON(msg_json, sizeof(msg_json), "{", (*json_file_indent));
-		strlcpy(msg_block, msg_json, msg_block_sz);
+		strlcat(str, "{", sizeof(str));
+		PT_FORMAT_JSON(fmt_str, sizeof(fmt_str), str, (*json_file_indent));
+		strlcat(buf, fmt_str, buf_sz);
 
 		(*json_file_indent)++;
 	}
 
-	if (flags & PT_JSON_KEY_VALUE_PAIR)
+	if (flags & PT_JSON_VALUE)
 	{
-		snprintf(msg, sizeof(msg), "\"%s\": \"%s\",", key, value);
-		PT_FORMAT_JSON(msg_json, sizeof(msg_json), msg, (*json_file_indent));
-		strlcat(msg_block, msg_json, msg_block_sz);
-	}
+		char		v[2048] = {0};
 
-	if (flags & PT_JSON_BLOCK_KEY)
-	{
-		snprintf(msg, sizeof(msg), "\"key\": \"%s\",", key);
-		PT_FORMAT_JSON(msg_json, sizeof(msg_json), msg, (*json_file_indent));
-		strlcat(msg_block, msg_json, msg_block_sz);
-	}
+		snprintf(v, sizeof(v), "\"%s\"%c", value, comma);
 
-	if (flags & PT_JSON_BLOCK_VALUE)
-	{
-		snprintf(msg, sizeof(msg), "\"value\": \"%s\"", value);
-		PT_FORMAT_JSON(msg_json, sizeof(msg_json), msg, (*json_file_indent));
-		strlcat(msg_block, msg_json, msg_block_sz);
+		strlcat(str, v, sizeof(str));
+		PT_FORMAT_JSON(fmt_str, sizeof(fmt_str), str, (*json_file_indent));
+		strlcat(buf, fmt_str, buf_sz);
 	}
 
 	if (flags & PT_JSON_ARRAY_START)
 	{
-		if (value && value[0] != '\0')
-			snprintf(msg, sizeof(msg), "\"%s\": [", value);
-		else
-			snprintf(msg, sizeof(msg), "\"value\": [");
-
-		PT_FORMAT_JSON(msg_json, sizeof(msg_json), msg, (*json_file_indent));
-		strlcat(msg_block, msg_json, msg_block_sz);
+		strlcat(str, "[", sizeof(str));
+		PT_FORMAT_JSON(fmt_str, sizeof(fmt_str), str, (*json_file_indent));
+		strlcat(buf, fmt_str, buf_sz);
 
 		(*json_file_indent)++;
 	}
@@ -123,57 +109,45 @@ construct_json_block(char *msg_block, size_t msg_block_sz, char *key, char *raw_
 	/* Value is not an array so we can close the block. */
 	if (flags & PT_JSON_ARRAY_END)
 	{
-		char		closing[3] = {']', ',', '\0'};
-
-		if (flags & PT_JSON_BLOCK_LAST)
-		{
-			/* Let's remove the comma in case this is the last block. */
-			closing[1] = '\0';
-		}
+		char		closing[3] = {']', comma, '\0'};
 
 		(*json_file_indent)--;
 
-		PT_FORMAT_JSON(msg_json, sizeof(msg_json), closing, (*json_file_indent));
-		strlcat(msg_block, msg_json, msg_block_sz);
+		PT_FORMAT_JSON(fmt_str, sizeof(fmt_str), closing, (*json_file_indent));
+		strlcat(buf, fmt_str, buf_sz);
 	}
 
 	/* Value is not an array so we can close the block. */
-	if (flags & PT_JSON_BLOCK_END)
+	if (flags & PT_JSON_OBJECT_END)
 	{
-		char		closing[3] = {'}', ',', '\0'};
-
-		if (flags & PT_JSON_BLOCK_LAST)
-		{
-			/* Let's remove the comma in case this is the last block. */
-			closing[1] = '\0';
-		}
+		char		closing[3] = {'}', comma, '\0'};
 
 		(*json_file_indent)--;
 
-		PT_FORMAT_JSON(msg_json, sizeof(msg_json), closing, (*json_file_indent));
-		strlcat(msg_block, msg_json, msg_block_sz);
+		PT_FORMAT_JSON(fmt_str, sizeof(fmt_str), closing, (*json_file_indent));
+		strlcat(buf, fmt_str, buf_sz);
 	}
 
 	if (value)
 		pfree(value);
 
-	return msg_block;
+	return buf;
 }
 
 /*
- * Open a file in the given mode.
+ * Open telemetry file in the given mode.
  */
 FILE *
-json_file_open(char *pathname, char *mode)
+open_telemetry_file(char *filename, char *mode)
 {
 	FILE	   *fp;
 
-	fp = fopen(pathname, mode);
+	fp = fopen(filename, mode);
 	if (fp == NULL)
 	{
 		ereport(LOG,
 				(errcode_for_file_access(),
-				 errmsg("Could not open file %s for writing.", pathname)));
+				 errmsg("Could not open file %s for writing.", filename)));
 		PT_WORKER_EXIT(PT_FILE_ERROR);
 	}
 
@@ -181,16 +155,16 @@ json_file_open(char *pathname, char *mode)
 }
 
 /*
- * Write JSON to file.
+ * Write data to telemetry file.
  */
 void
-write_json_to_file(FILE *fp, char *json_str)
+write_telemetry_file(FILE *fp, char *data)
 {
 	int			len;
 	int			bytes_written;
 
-	len = strlen(json_str);
-	bytes_written = fwrite(json_str, 1, len, fp);
+	len = strlen(data);
+	bytes_written = fwrite(data, 1, len, fp);
 
 	if (len != bytes_written)
 	{
