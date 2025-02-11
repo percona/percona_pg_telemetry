@@ -62,7 +62,7 @@ You can find the configuration parameters of the `percona_pg_telemetry` extensio
   * OUT: pt_enabled               - BOOLEAN
     - True if telemetry data collection is enabled.
 
-> **NOTE** Functions are only visible if extension has already been created using 'Create extension percona_pg_telemetry;'.
+> **NOTE** Functions are only visible after you have created the extension using the 'CREATE EXTENSION percona_pg_telemetry;' command.
 
 ### Setup
 
