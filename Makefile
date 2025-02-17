@@ -7,7 +7,7 @@ OBJS = \
 	percona_pg_telemetry.o
 
 EXTENSION = percona_pg_telemetry
-DATA = percona_pg_telemetry--1.0.sql
+DATA = percona_pg_telemetry--1.0.sql percona_pg_telemetry--1.0--1.1.sql
 
 PGFILEDESC = "percona_pg_telemetry - extension for Percona telemetry data collection."
 
