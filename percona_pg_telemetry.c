@@ -562,7 +562,7 @@ setup_background_worker(const char *bgw_function_name, const char *bgw_name, con
 }
 
 /*
- * Returns string contain server uptime in seconds
+ * Returns server uptime in seconds.
  */
 static long
 server_uptime(void)
@@ -575,33 +575,28 @@ server_uptime(void)
 	return secs;
 }
 
+
 /*
- * Getting pg_settings values:
- * -> name, units, setting, boot_val, and reset_val
+ * Write PG settings to the telemetry file excluding string type settings, because it can expose sensitive information.
  */
-
-#define PT_SETTINGS_COL_COUNT 5
-
 static void
 write_pg_settings(void)
 {
 	SPITupleTable *tuptable;
 	int			spi_result;
-	char	   *query = "SELECT name, unit, setting, reset_val, boot_val FROM pg_settings where vartype != 'string'";
-	char		msg[2048] = {0};
-	char		msg_json[4096] = {0};
-	size_t		sz_json;
+	char	   *query = "SELECT name, unit, setting FROM pg_settings where vartype != 'string'";
+	char		buf[4096] = {0};
+	size_t		buf_size = sizeof(buf);
 	FILE	   *fp;
 	int			flags;
 
-	sz_json = sizeof(msg_json);
 
 	/* Open file in append mode. */
-	fp = json_file_open(ptss->dbtemp_filepath, "a+");
+	fp = open_telemetry_file(ptss->dbtemp_filepath, "a+");
 
-	/* Construct and initiate the active extensions array block. */
-	construct_json_block(msg_json, sz_json, "", "settings", PT_JSON_ARRAY_START, &ptss->json_file_indent);
-	write_json_to_file(fp, msg_json);
+	/* Start settings object */
+	construct_json_block(buf, buf_size, "settings", NULL, PT_JSON_NAMED_OBJECT_START, &ptss->json_file_indent);
+	write_telemetry_file(fp, buf);
 
 	SetCurrentStatementStartTimestamp();
 	StartTransactionCommand();
@@ -619,7 +614,7 @@ write_pg_settings(void)
 	if (spi_result != SPI_OK_SELECT)
 	{
 		SPI_finish();
-		ereport(ERROR, (errmsg("Query failed execution.")));
+		ereport(ERROR, (errmsg("Failed to execute query")));
 	}
 
 	/* Process the result */
@@ -630,49 +625,40 @@ write_pg_settings(void)
 		for (int row_count = 0; row_count < SPI_processed; row_count++)
 		{
 			char	   *null_value = "NULL";
-			char	   *value_str[PT_SETTINGS_COL_COUNT];
 
+			/* Get setting name, we don't expect empty value here */
+			char	   *name = SPI_getvalue(tuptable->vals[row_count], tuptable->tupdesc, 1);
 
-			/* Construct and initiate the active extensions array block. */
-			construct_json_block(msg_json, sz_json, "setting", "", PT_JSON_BLOCK_ARRAY_VALUE, &ptss->json_file_indent);
-			write_json_to_file(fp, msg_json);
+			/* Start particular setting object */
+			construct_json_block(buf, buf_size, name, NULL, PT_JSON_NAMED_OBJECT_START, &ptss->json_file_indent);
+			write_telemetry_file(fp, buf);
 
-			/* Process the tuple as needed */
-			for (int col_count = 1; col_count <= tuptable->tupdesc->natts; col_count++)
+			/* Get the rest of the values */
+			for (int col_count = 2; col_count <= tuptable->tupdesc->natts; col_count++)
 			{
 				char	   *str = SPI_getvalue(tuptable->vals[row_count], tuptable->tupdesc, col_count);
 
-				value_str[col_count - 1] = (str == NULL || str[0] == '\0') ? null_value : str;
+				char	   *value = (str == NULL || str[0] == '\0') ? null_value : str;
 
-				flags = (col_count == tuptable->tupdesc->natts) ? (PT_JSON_BLOCK_SIMPLE | PT_JSON_BLOCK_LAST) : PT_JSON_BLOCK_SIMPLE;
+				flags = (col_count == tuptable->tupdesc->natts) ? (PT_JSON_KEY_VALUE | PT_JSON_LAST_ELEMENT) : PT_JSON_KEY_VALUE;
 
-				construct_json_block(msg_json, sz_json, NameStr(tuptable->tupdesc->attrs[col_count - 1].attname),
-									 value_str[col_count - 1], flags, &ptss->json_file_indent);
-				write_json_to_file(fp, msg_json);
+				construct_json_block(buf, buf_size, NameStr(tuptable->tupdesc->attrs[col_count - 1].attname),
+									 value, flags, &ptss->json_file_indent);
+				write_telemetry_file(fp, buf);
 			}
 
-			/* Close the array */
-			construct_json_block(msg, sizeof(msg), "setting", "", PT_JSON_ARRAY_END | PT_JSON_BLOCK_LAST, &ptss->json_file_indent);
-			strcpy(msg_json, msg);
-
-			/* Close the extension block */
-			flags = (row_count == (SPI_processed - 1)) ? (PT_JSON_BLOCK_END | PT_JSON_BLOCK_LAST) : PT_JSON_BLOCK_END;
-			construct_json_block(msg, sizeof(msg), "setting", "", flags, &ptss->json_file_indent);
-			strlcat(msg_json, msg, sz_json);
-
-			/* Write both to file. */
-			write_json_to_file(fp, msg_json);
+			/* Close setting object */
+			flags = (row_count == (SPI_processed - 1)) ? (PT_JSON_OBJECT_END | PT_JSON_LAST_ELEMENT) : PT_JSON_OBJECT_END;
+			construct_json_block(buf, sizeof(buf), NULL, NULL, flags, &ptss->json_file_indent);
+			write_telemetry_file(fp, buf);
 		}
 	}
 
-	/* Close the array */
-	construct_json_block(msg, sizeof(msg), "settings", "", PT_JSON_ARRAY_END, &ptss->json_file_indent);
-	strcpy(msg_json, msg);
+	/* Close settings object */
+	construct_json_block(buf, sizeof(buf), NULL, NULL, PT_JSON_OBJECT_END, &ptss->json_file_indent);
+	write_telemetry_file(fp, buf);
 
-	/* Write both to file. */
-	write_json_to_file(fp, msg_json);
-
-	/* Clean up */
+	/* Close the file */
 	fclose(fp);
 
 	/* Disconnect from SPI */
@@ -681,8 +667,6 @@ write_pg_settings(void)
 	PopActiveSnapshot();
 	CommitTransactionCommand();
 }
-
-#undef PT_SETTINGS_COL_COUNT
 
 /*
  * Return a list of databases from the pg_database catalog
@@ -803,82 +787,64 @@ get_extensions_list(PTDatabaseInfo *dbinfo, MemoryContext cxt)
 static bool
 write_database_info(PTDatabaseInfo *dbinfo, List *extlist)
 {
-	char		msg[2048] = {0};
-	char		msg_json[4096] = {0};
-	size_t		sz_json;
+	char		str[2048] = {0};
+	char		buf[4096] = {0};
+	size_t		buf_size = sizeof(buf);
 	FILE	   *fp;
 	ListCell   *lc;
 	int			flags;
 
-	sz_json = sizeof(msg_json);
-
 	/* Open file in append mode. */
-	fp = json_file_open(ptss->dbtemp_filepath, "a+");
+	fp = open_telemetry_file(ptss->dbtemp_filepath, "a+");
 
 	if (ptss->first_db_entry)
 	{
-		/* Construct and initiate the active extensions array block. */
-		construct_json_block(msg_json, sz_json, "", "databases", PT_JSON_ARRAY_START, &ptss->json_file_indent);
-		write_json_to_file(fp, msg_json);
+		/* Start databases object */
+		construct_json_block(buf, buf_size, "databases", NULL, PT_JSON_NAMED_OBJECT_START, &ptss->json_file_indent);
+		write_telemetry_file(fp, buf);
 	}
 
-	/* Construct and initiate the active extensions array block. */
-	construct_json_block(msg_json, sz_json, "database", "value", PT_JSON_BLOCK_ARRAY_VALUE, &ptss->json_file_indent);
-	write_json_to_file(fp, msg_json);
+	/* Start database object where database OID is key */
+	snprintf(str, sizeof(str), "%u", dbinfo->datid);
+	construct_json_block(buf, buf_size, str, NULL, PT_JSON_NAMED_OBJECT_START, &ptss->json_file_indent);
+	write_telemetry_file(fp, buf);
 
-	/* Construct and write the database OID block. */
-	snprintf(msg, sizeof(msg), "%u", dbinfo->datid);
-	construct_json_block(msg_json, sz_json, "database_oid", msg, PT_JSON_BLOCK_SIMPLE, &ptss->json_file_indent);
-	write_json_to_file(fp, msg_json);
+	/* Add database size */
+	snprintf(str, sizeof(str), "%lu", dbinfo->datsize);
+	construct_json_block(buf, buf_size, "size", str, PT_JSON_KEY_VALUE, &ptss->json_file_indent);
+	write_telemetry_file(fp, buf);
 
-	/* Construct and write the database size block. */
-	snprintf(msg, sizeof(msg), "%lu", dbinfo->datsize);
-	construct_json_block(msg_json, sz_json, "database_size", msg, PT_JSON_BLOCK_SIMPLE, &ptss->json_file_indent);
-	write_json_to_file(fp, msg_json);
+	/* Start active extensions array */
+	construct_json_block(buf, buf_size, "active_extensions", NULL, PT_JSON_NAMED_ARRAY_START, &ptss->json_file_indent);
+	write_telemetry_file(fp, buf);
 
-	/* Construct and initiate the active extensions array block. */
-	construct_json_block(msg_json, sz_json, "active_extensions", "value", PT_JSON_BLOCK_ARRAY_VALUE, &ptss->json_file_indent);
-	write_json_to_file(fp, msg_json);
-
-	/* Iterate through all extensions and those to the array. */
+	/* Add extensions names */
 	foreach(lc, extlist)
 	{
 		PTExtensionInfo *extinfo = lfirst(lc);
 
-		flags = (list_tail(extlist) == lc) ? (PT_JSON_BLOCK_SIMPLE | PT_JSON_BLOCK_LAST) : PT_JSON_BLOCK_SIMPLE;
-
-		construct_json_block(msg_json, sz_json, "extension_name", extinfo->extname, flags, &ptss->json_file_indent);
-		write_json_to_file(fp, msg_json);
+		flags = (list_tail(extlist) == lc) ? (PT_JSON_VALUE | PT_JSON_LAST_ELEMENT) : PT_JSON_VALUE;
+		construct_json_block(buf, buf_size, NULL, extinfo->extname, flags, &ptss->json_file_indent);
+		write_telemetry_file(fp, buf);
 	}
 
-	/* Close the array and block and write to file */
-	construct_json_block(msg, sizeof(msg), "active_extensions", "active_extensions", PT_JSON_ARRAY_END | PT_JSON_BLOCK_END | PT_JSON_BLOCK_LAST, &ptss->json_file_indent);
-	strcpy(msg_json, msg);
-	write_json_to_file(fp, msg_json);
-
-	/* Close the array */
-	construct_json_block(msg, sizeof(msg), "database", "", PT_JSON_ARRAY_END | PT_JSON_BLOCK_LAST, &ptss->json_file_indent);
-	strcpy(msg_json, msg);
+	/* Close active extensions array */
+	construct_json_block(buf, buf_size, NULL, NULL, PT_JSON_ARRAY_END | PT_JSON_LAST_ELEMENT, &ptss->json_file_indent);
+	write_telemetry_file(fp, buf);
 
 	/* Close the database block */
-	flags = (ptss->last_db_entry) ? (PT_JSON_BLOCK_END | PT_JSON_BLOCK_LAST) : PT_JSON_BLOCK_END;
-	construct_json_block(msg, sizeof(msg), "database", "", flags, &ptss->json_file_indent);
-	strlcat(msg_json, msg, sz_json);
-
-	/* Write both to file. */
-	write_json_to_file(fp, msg_json);
+	flags = (ptss->last_db_entry) ? (PT_JSON_OBJECT_END | PT_JSON_LAST_ELEMENT) : PT_JSON_OBJECT_END;
+	construct_json_block(buf, buf_size, NULL, NULL, flags, &ptss->json_file_indent);
+	write_telemetry_file(fp, buf);
 
 	if (ptss->last_db_entry)
 	{
-		/* Close the array */
-		construct_json_block(msg, sizeof(msg), "databases", "", PT_JSON_ARRAY_END | PT_JSON_BLOCK_LAST, &ptss->json_file_indent);
-		strcpy(msg_json, msg);
-
-		/* Write both to file. */
-		write_json_to_file(fp, msg_json);
+		/* Close databases object */
+		construct_json_block(buf, buf_size, NULL, NULL, PT_JSON_OBJECT_END | PT_JSON_LAST_ELEMENT, &ptss->json_file_indent);
+		write_telemetry_file(fp, buf);
 	}
 
-	/* Clean up */
+	/* Close the file */
 	fclose(fp);
 
 	return true;
@@ -893,15 +859,11 @@ percona_pg_telemetry_main(Datum main_arg)
 	int			rc = 0;
 	List	   *dblist = NIL;
 	ListCell   *lc = NULL;
-	char		json_pg_version[1024];
 	FILE	   *fp;
-	char		msg[2048] = {0};
-	char		msg_json[4096] = {0};
-	size_t		sz_json = sizeof(msg_json);
+	char		str[2048] = {0};
+	char		buf[4096] = {0};
+	size_t		buf_size = sizeof(buf);
 	bool		first_time = true;
-
-	/* Save the version in a JSON escaped stirng just to be safe. */
-	strcpy(json_pg_version, PG_VERSION);
 
 	/* Setup signal callbacks */
 	pqsignal(SIGTERM, pt_sigterm);
@@ -977,29 +939,29 @@ percona_pg_telemetry_main(Datum main_arg)
 			ptss->write_in_progress = true;
 
 			/* Open file for writing. */
-			fp = json_file_open(ptss->dbtemp_filepath, "w");
+			fp = open_telemetry_file(ptss->dbtemp_filepath, "w");
 
-			construct_json_block(msg_json, sz_json, "", "", PT_JSON_BLOCK_START, &ptss->json_file_indent);
-			write_json_to_file(fp, msg_json);
+			construct_json_block(buf, buf_size, NULL, NULL, PT_JSON_OBJECT_START, &ptss->json_file_indent);
+			write_telemetry_file(fp, buf);
 
 			/* Construct and write the database size block. */
-			pg_snprintf(msg, sizeof(msg), "%lu", GetSystemIdentifier());
-			construct_json_block(msg_json, sz_json, "db_instance_id", msg, PT_JSON_KEY_VALUE_PAIR, &ptss->json_file_indent);
-			write_json_to_file(fp, msg_json);
+			pg_snprintf(str, sizeof(str), "%lu", GetSystemIdentifier());
+			construct_json_block(buf, buf_size, "db_instance_id", str, PT_JSON_KEY_VALUE, &ptss->json_file_indent);
+			write_telemetry_file(fp, buf);
 
 			/* Construct and initiate the active extensions array block. */
-			construct_json_block(msg_json, sz_json, "pillar_version", json_pg_version, PT_JSON_KEY_VALUE_PAIR, &ptss->json_file_indent);
-			write_json_to_file(fp, msg_json);
+			construct_json_block(buf, buf_size, "pillar_version", PG_VERSION, PT_JSON_KEY_VALUE, &ptss->json_file_indent);
+			write_telemetry_file(fp, buf);
 
 			/* Construct and initiate the active extensions array block. */
-			pg_snprintf(msg, sizeof(msg), "%ld", server_uptime());
-			construct_json_block(msg_json, sz_json, "uptime", msg, PT_JSON_KEY_VALUE_PAIR, &ptss->json_file_indent);
-			write_json_to_file(fp, msg_json);
+			pg_snprintf(str, sizeof(str), "%ld", server_uptime());
+			construct_json_block(buf, buf_size, "uptime", str, PT_JSON_KEY_VALUE, &ptss->json_file_indent);
+			write_telemetry_file(fp, buf);
 
 			/* Construct and initiate the active extensions array block. */
 			pg_snprintf(temp_buff, sizeof(temp_buff), "%d", list_length(dblist));
-			construct_json_block(msg_json, sz_json, "databases_count", temp_buff, PT_JSON_KEY_VALUE_PAIR, &ptss->json_file_indent);
-			write_json_to_file(fp, msg_json);
+			construct_json_block(buf, buf_size, "databases_count", temp_buff, PT_JSON_KEY_VALUE, &ptss->json_file_indent);
+			write_telemetry_file(fp, buf);
 
 			/* Let's close the file now so that processes may add their stuff. */
 			fclose(fp);
@@ -1036,9 +998,9 @@ percona_pg_telemetry_main(Datum main_arg)
 				Assert(ptss->write_in_progress == true);
 
 				/* Open file, writing the closing bracket and close it. */
-				fp = json_file_open(ptss->dbtemp_filepath, "a+");
-				construct_json_block(msg_json, sz_json, "", "", PT_JSON_BLOCK_END | PT_JSON_BLOCK_LAST, &ptss->json_file_indent);
-				write_json_to_file(fp, msg_json);
+				fp = open_telemetry_file(ptss->dbtemp_filepath, "a+");
+				construct_json_block(buf, buf_size, NULL, NULL, PT_JSON_OBJECT_END | PT_JSON_LAST_ELEMENT, &ptss->json_file_indent);
+				write_telemetry_file(fp, buf);
 				fclose(fp);
 
 				/* Generate and save the filename */
