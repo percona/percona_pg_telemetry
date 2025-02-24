@@ -862,6 +862,7 @@ percona_pg_telemetry_main(Datum main_arg)
 	FILE	   *fp;
 	char		str[2048] = {0};
 	char		buf[4096] = {0};
+	char	   *pg_version = NULL;
 	size_t		buf_size = sizeof(buf);
 	bool		first_time = true;
 
@@ -890,6 +891,8 @@ percona_pg_telemetry_main(Datum main_arg)
 
 	/* This is the context that we will allocate our data in */
 	pt_cxt = AllocSetContextCreate(TopMemoryContext, "Percona Telemetry Context", ALLOCSET_DEFAULT_SIZES);
+
+	pg_version = GetConfigOptionByName("server_version", NULL, true);
 
 	/* Should never really terminate unless... */
 	while (!sigterm_recvd && ptss->error_code == PT_SUCCESS)
@@ -950,7 +953,7 @@ percona_pg_telemetry_main(Datum main_arg)
 			write_telemetry_file(fp, buf);
 
 			/* Construct and initiate the active extensions array block. */
-			construct_json_block(buf, buf_size, "pillar_version", PG_VERSION, PT_JSON_KEY_VALUE, &ptss->json_file_indent);
+			construct_json_block(buf, buf_size, "pillar_version", pg_version, PT_JSON_KEY_VALUE, &ptss->json_file_indent);
 			write_telemetry_file(fp, buf);
 
 			/* Construct and initiate the active extensions array block. */
