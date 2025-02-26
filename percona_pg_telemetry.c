@@ -883,7 +883,8 @@ percona_pg_telemetry_main(Datum main_arg)
 	/* This is the context that we will allocate our data in */
 	pt_cxt = AllocSetContextCreate(TopMemoryContext, "Percona Telemetry Context", ALLOCSET_DEFAULT_SIZES);
 
-	pg_version = GetConfigOptionByName("server_version", NULL, true);
+	pg_version = GetConfigOptionByName("server_version", NULL, false);
+	Assert(pg_version != NULL);
 
 	/* Should never really terminate unless... */
 	while (!sigterm_recvd && ptss->error_code == PT_SUCCESS)
