@@ -99,7 +99,7 @@ static int	compare_file_names(const void *a, const void *b);
 static void write_pg_settings(void);
 static List *get_database_list(void);
 static List *get_extensions_list(PTDatabaseInfo *dbinfo, MemoryContext cxt);
-static bool write_database_info(PTDatabaseInfo *dbinfo, List *extlist);
+static bool write_database_info(PTDatabaseInfo *dbinfo, List *extlist, List *amlist);
 
 /* Shared state stuff */
 static PTSharedState *ptss = NULL;
@@ -780,12 +780,82 @@ get_extensions_list(PTDatabaseInfo *dbinfo, MemoryContext cxt)
 	return extlist;
 }
 
+static List *
+get_access_methods_list(MemoryContext cxt)
+{
+	List	   *amlist = NIL;
+	SPITupleTable *tuptable;
+	int			spi_result;
+	char	   *query = "SELECT am.amname AS access_method, count(*) FROM pg_class c LEFT JOIN pg_am am ON c.relam = am.oid WHERE c.relkind = 'r' AND c.relnamespace NOT IN ( SELECT oid FROM pg_namespace WHERE nspname IN ('pg_catalog', 'information_schema', 'pg_toast') ) GROUP BY access_method ORDER BY access_method;";
+	MemoryContext oldcxt;
+
+	SetCurrentStatementStartTimestamp();
+	StartTransactionCommand();
+
+	/* Initialize SPI */
+	if (SPI_connect() != SPI_OK_CONNECT)
+	{
+		ereport(ERROR, (errmsg("Failed to connect to SPI")));
+	}
+
+	PushActiveSnapshot(GetTransactionSnapshot());
+
+	/* Execute the query */
+	spi_result = SPI_execute(query, true, 0);
+	if (spi_result != SPI_OK_SELECT)
+	{
+		SPI_finish();
+		ereport(ERROR, (errmsg("Failed to execute query")));
+	}
+	if (SPI_processed > 0)
+	{
+		PTAccessMethodInfo *aminfo;
+		uint64		row_count;
+
+		char	   *amname;
+		char	   *count;
+
+		/* Switch to our memory context instead of the transaction one */
+		oldcxt = MemoryContextSwitchTo(cxt);
+
+		tuptable = SPI_tuptable;
+		for (row_count = 0; row_count < SPI_processed; row_count++)
+		{
+			HeapTuple	tuple = tuptable->vals[row_count];
+
+			aminfo = (PTAccessMethodInfo *) palloc(sizeof(PTAccessMethodInfo));
+
+			/* Fill in the structure */
+			amname = SPI_getvalue(tuple, tuptable->tupdesc, 1);
+			count = SPI_getvalue(tuple, tuptable->tupdesc, 2);
+			strncpy(aminfo->access_method_name, amname, sizeof(aminfo->access_method_name));
+			aminfo->count = atoi(count);
+
+			/* Add to the list */
+			amlist = lappend(amlist, aminfo);
+
+		}
+
+		/* Switch back the memory context */
+		cxt = MemoryContextSwitchTo(oldcxt);
+	}
+
+	/* Disconnect from SPI */
+	SPI_finish();
+
+	PopActiveSnapshot();
+	CommitTransactionCommand();
+
+	/* Return the list */
+	return amlist;
+}
+
 /*
  * Writes database information along with names of the active extensions to
  * the file.
  */
 static bool
-write_database_info(PTDatabaseInfo *dbinfo, List *extlist)
+write_database_info(PTDatabaseInfo *dbinfo, List *extlist, List *amlist)
 {
 	char		str[2048] = {0};
 	char		buf[4096] = {0};
@@ -829,6 +899,27 @@ write_database_info(PTDatabaseInfo *dbinfo, List *extlist)
 	}
 
 	/* Close active extensions array */
+	construct_json_block(buf, buf_size, NULL, NULL, PT_JSON_ARRAY_END, &ptss->json_file_indent);
+	write_telemetry_file(fp, buf);
+
+
+	/* Start access methods array */
+	construct_json_block(buf, buf_size, "access_methods", NULL, PT_JSON_NAMED_ARRAY_START, &ptss->json_file_indent);
+	write_telemetry_file(fp, buf);
+
+	/* Add access methods */
+	foreach(lc, amlist)
+	{
+		PTAccessMethodInfo *aminfo = lfirst(lc);
+
+		flags = (list_tail(amlist) == lc) ? (PT_JSON_KEY_VALUE | PT_JSON_LAST_ELEMENT) : PT_JSON_KEY_VALUE;
+
+		sprintf(str, "%ld", aminfo->count);
+		construct_json_block(buf, buf_size, aminfo->access_method_name, str, flags, &ptss->json_file_indent);
+		write_telemetry_file(fp, buf);
+	}
+
+	/* Close access methods array */
 	construct_json_block(buf, buf_size, NULL, NULL, PT_JSON_ARRAY_END | PT_JSON_LAST_ELEMENT, &ptss->json_file_indent);
 	write_telemetry_file(fp, buf);
 
@@ -1069,6 +1160,7 @@ percona_pg_telemetry_worker(Datum main_arg)
 	Oid			datid;
 	MemoryContext tmpcxt;
 	List	   *extlist = NIL;
+	List	   *amlist = NIL;
 
 	/* Get the argument. Ensure that it's a valid oid in case of a worker */
 	datid = DatumGetObjectId(main_arg);
@@ -1091,8 +1183,9 @@ percona_pg_telemetry_worker(Datum main_arg)
 		write_pg_settings();
 
 	extlist = get_extensions_list(&ptss->dbinfo, tmpcxt);
+	amlist = get_access_methods_list(tmpcxt);
 
-	if (write_database_info(&ptss->dbinfo, extlist) == false)
+	if (write_database_info(&ptss->dbinfo, extlist, amlist) == false)
 		PT_WORKER_EXIT(PT_FILE_ERROR);
 
 	/* Ending the worker... */
