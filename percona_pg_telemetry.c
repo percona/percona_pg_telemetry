@@ -668,6 +668,52 @@ write_pg_settings(void)
 	CommitTransactionCommand();
 }
 
+static void
+write_tde_info(List *kmslist)
+{
+	char		buf[4096] = {0};
+	size_t		buf_size = sizeof(buf);
+	FILE	   *fp;
+	int			flags;
+	ListCell   *lc;
+	char		str[2048] = {0};
+
+
+	/* Open file in append mode. */
+	fp = open_telemetry_file(ptss->dbtemp_filepath, "a+");
+
+	/* Start tde object */
+	construct_json_block(buf, buf_size, "tde", NULL, PT_JSON_NAMED_OBJECT_START, &ptss->json_file_indent);
+	write_telemetry_file(fp, buf);
+
+	/* Start key management systems array */
+	construct_json_block(buf, buf_size, "kms", NULL, PT_JSON_NAMED_ARRAY_START, &ptss->json_file_indent);
+	write_telemetry_file(fp, buf);
+
+	/* Add kms info */
+	foreach(lc, kmslist)
+	{
+		PTKeyManagementSystemsInfo *kmsinfo = lfirst(lc);
+
+		flags = (list_tail(kmslist) == lc) ? (PT_JSON_KEY_VALUE | PT_JSON_LAST_ELEMENT) : PT_JSON_KEY_VALUE;
+
+		sprintf(str, "%ld", kmsinfo->count);
+		construct_json_block(buf, buf_size, kmsinfo->kmsname, str, flags, &ptss->json_file_indent);
+		write_telemetry_file(fp, buf);
+	}
+
+	/* Close kms array */
+	construct_json_block(buf, buf_size, NULL, NULL, PT_JSON_ARRAY_END | PT_JSON_LAST_ELEMENT, &ptss->json_file_indent);
+	write_telemetry_file(fp, buf);
+
+	/* Close tde object */
+	construct_json_block(buf, buf_size, NULL, NULL, PT_JSON_OBJECT_END, &ptss->json_file_indent);
+	write_telemetry_file(fp, buf);
+
+	/* Close the file */
+	fclose(fp);
+}
+
 /*
  * Return a list of databases from the pg_database catalog
  */
@@ -828,7 +874,7 @@ get_access_methods_list(MemoryContext cxt)
 			/* Fill in the structure */
 			amname = SPI_getvalue(tuple, tuptable->tupdesc, 1);
 			count = SPI_getvalue(tuple, tuptable->tupdesc, 2);
-			strncpy(aminfo->access_method_name, amname, sizeof(aminfo->access_method_name));
+			strncpy(aminfo->amname, amname, sizeof(aminfo->amname));
 			aminfo->count = atoi(count);
 
 			/* Add to the list */
@@ -848,6 +894,77 @@ get_access_methods_list(MemoryContext cxt)
 
 	/* Return the list */
 	return amlist;
+}
+
+/* Get a list of global key management systems */
+static List *
+get_global_key_providers(MemoryContext cxt)
+{
+	List	   *kmslist = NIL;
+	SPITupleTable *tuptable;
+	int			spi_result;
+	char	   *query = "SELECT provider_type, COUNT(*) FROM pg_tde_list_all_global_key_providers() GROUP BY provider_type;";
+	MemoryContext oldcxt;
+
+	SetCurrentStatementStartTimestamp();
+	StartTransactionCommand();
+
+	/* Initialize SPI */
+	if (SPI_connect() != SPI_OK_CONNECT)
+	{
+		ereport(ERROR, (errmsg("Failed to connect to SPI")));
+	}
+
+	PushActiveSnapshot(GetTransactionSnapshot());
+
+	/* Execute the query */
+	spi_result = SPI_execute(query, true, 0);
+	if (spi_result != SPI_OK_SELECT)
+	{
+		SPI_finish();
+		ereport(ERROR, (errmsg("Failed to execute query")));
+	}
+
+	if (SPI_processed > 0)
+	{
+		PTKeyManagementSystemsInfo *kmsinfo;
+		uint64		row_count;
+
+		char	   *kmsname;
+		char	   *count;
+
+		/* Switch to our memory context instead of the transaction one */
+		oldcxt = MemoryContextSwitchTo(cxt);
+
+		tuptable = SPI_tuptable;
+		for (row_count = 0; row_count < SPI_processed; row_count++)
+		{
+			HeapTuple	tuple = tuptable->vals[row_count];
+
+			kmsinfo = (PTKeyManagementSystemsInfo *) palloc(sizeof(PTKeyManagementSystemsInfo));
+
+			/* Fill in the structure */
+			kmsname = SPI_getvalue(tuple, tuptable->tupdesc, 1);
+			count = SPI_getvalue(tuple, tuptable->tupdesc, 2);
+			strncpy(kmsinfo->kmsname, kmsname, sizeof(kmsinfo->kmsname));
+			kmsinfo->count = atoi(count);
+
+			/* Add to the list */
+			kmslist = lappend(kmslist, kmsinfo);
+
+		}
+
+		/* Switch back the memory context */
+		cxt = MemoryContextSwitchTo(oldcxt);
+	}
+
+	/* Disconnect from SPI */
+	SPI_finish();
+
+	PopActiveSnapshot();
+	CommitTransactionCommand();
+
+	return kmslist;
 }
 
 /*
@@ -915,7 +1032,7 @@ write_database_info(PTDatabaseInfo *dbinfo, List *extlist, List *amlist)
 		flags = (list_tail(amlist) == lc) ? (PT_JSON_KEY_VALUE | PT_JSON_LAST_ELEMENT) : PT_JSON_KEY_VALUE;
 
 		sprintf(str, "%ld", aminfo->count);
-		construct_json_block(buf, buf_size, aminfo->access_method_name, str, flags, &ptss->json_file_indent);
+		construct_json_block(buf, buf_size, aminfo->amname, str, flags, &ptss->json_file_indent);
 		write_telemetry_file(fp, buf);
 	}
 
@@ -1161,6 +1278,7 @@ percona_pg_telemetry_worker(Datum main_arg)
 	MemoryContext tmpcxt;
 	List	   *extlist = NIL;
 	List	   *amlist = NIL;
+	List	   *kmslist = NIL;
 
 	/* Get the argument. Ensure that it's a valid oid in case of a worker */
 	datid = DatumGetObjectId(main_arg);
@@ -1178,12 +1296,16 @@ percona_pg_telemetry_worker(Datum main_arg)
 	/* Set name to make percona_pg_telemetry visible in pg_stat_activity */
 	pgstat_report_appname("percona_pg_telemetry_worker");
 
-	/* Get the settings */
-	if (ptss->first_db_entry)
-		write_pg_settings();
-
 	extlist = get_extensions_list(&ptss->dbinfo, tmpcxt);
 	amlist = get_access_methods_list(tmpcxt);
+
+	/* Get the settings */
+	if (ptss->first_db_entry)
+	{
+		kmslist = get_global_key_providers(tmpcxt);
+		write_pg_settings();
+		write_tde_info(kmslist);
+	}
 
 	if (write_database_info(&ptss->dbinfo, extlist, amlist) == false)
 		PT_WORKER_EXIT(PT_FILE_ERROR);

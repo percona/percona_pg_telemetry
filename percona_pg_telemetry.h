@@ -44,10 +44,15 @@ typedef struct PTExtensionInfo
 /* Struct to keep track of access methods of a database */
 typedef struct PTAccessMethodInfo
 {
-	char		access_method_name[NAMEDATALEN];
+	char		amname[NAMEDATALEN];
 	int64		count;			/* Number of tables using this access method */
-}			PTAccessMethodInfo;
+} PTAccessMethodInfo;
 
+typedef struct PTKeyManagementSystemsInfo
+{
+	char		kmsname[NAMEDATALEN];
+	int64		count;			/* Number key management system of this type */
+} PTKeyManagementSystemsInfo;
 
 /*
  * Shared state to telemetry. We don't need any locks as we run only one
