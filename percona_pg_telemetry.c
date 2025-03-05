@@ -700,7 +700,7 @@ get_database_list(void)
 
 		/* Switch to our memory context instead of the transaction one */
 		oldcxt = MemoryContextSwitchTo(pt_cxt);
-		dbinfo = (PTDatabaseInfo *) palloc(sizeof(PTDatabaseInfo));
+		dbinfo = palloc_object(PTDatabaseInfo);
 
 		/* Fill in the structure */
 		dbinfo->datid = pgdatabase->oid;
@@ -752,7 +752,7 @@ get_extensions_list(PTDatabaseInfo *dbinfo, MemoryContext cxt)
 
 		/* Switch to the given memory context */
 		oldcxt = MemoryContextSwitchTo(cxt);
-		extinfo = (PTExtensionInfo *) palloc(sizeof(PTExtensionInfo));
+		extinfo = palloc_object(PTExtensionInfo);
 
 		/* Fill in the structure */
 		extinfo->db_data = dbinfo;
