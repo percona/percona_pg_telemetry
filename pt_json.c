@@ -24,7 +24,6 @@ static char *json_escape_str(char *str);
 char *
 json_escape_str(char *str)
 {
-	int			i;
 	int			len;
 	int			maxlen;
 	char	   *str_escaped;
@@ -40,7 +39,7 @@ json_escape_str(char *str)
 	str_escaped = (char *) palloc(maxlen);
 	s = str_escaped;
 
-	for (i = 0; i < len; i++)
+	for (int i = 0; i < len; i++)
 	{
 		/* Escape the quote and backslash characters. */
 		if (str[i] == '"' || str[i] == '\\')
