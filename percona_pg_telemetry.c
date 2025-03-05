@@ -583,7 +583,7 @@ static void
 write_pg_settings(void)
 {
 	int			spi_result;
-	char	   *query = "SELECT name, unit, setting FROM pg_settings where vartype != 'string'";
+	const char *const query = "SELECT name, unit, setting FROM pg_settings where vartype != 'string'";
 	char		buf[4096] = {0};
 	size_t		buf_size = sizeof(buf);
 	FILE	   *fp;
