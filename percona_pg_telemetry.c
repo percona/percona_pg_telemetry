@@ -422,7 +422,7 @@ pt_shmem_init(void)
 		uint64		system_id = GetSystemIdentifier();
 
 		/* Set paths */
-		strncpy(ptss->telemetry_path, t_folder, MAXPGPATH);
+		strlcpy(ptss->telemetry_path, t_folder, MAXPGPATH);
 		pg_snprintf(ptss->dbtemp_filepath, MAXPGPATH, "%s/%lu.temp", ptss->telemetry_path, system_id);
 
 		/*
@@ -582,14 +582,11 @@ server_uptime(void)
 static void
 write_pg_settings(void)
 {
-	SPITupleTable *tuptable;
 	int			spi_result;
-	char	   *query = "SELECT name, unit, setting FROM pg_settings where vartype != 'string'";
+	const char *const query = "SELECT name, unit, setting FROM pg_settings where vartype != 'string'";
 	char		buf[4096] = {0};
 	size_t		buf_size = sizeof(buf);
 	FILE	   *fp;
-	int			flags;
-
 
 	/* Open file in append mode. */
 	fp = open_telemetry_file(ptss->dbtemp_filepath, "a+");
@@ -602,10 +599,7 @@ write_pg_settings(void)
 	StartTransactionCommand();
 
 	/* Initialize SPI */
-	if (SPI_connect() != SPI_OK_CONNECT)
-	{
-		ereport(ERROR, (errmsg("Failed to connect to SPI")));
-	}
+	SPI_connect();
 
 	PushActiveSnapshot(GetTransactionSnapshot());
 
@@ -620,7 +614,8 @@ write_pg_settings(void)
 	/* Process the result */
 	if (SPI_processed > 0)
 	{
-		tuptable = SPI_tuptable;
+		int			flags;
+		SPITupleTable *tuptable = SPI_tuptable;
 
 		for (int row_count = 0; row_count < SPI_processed; row_count++)
 		{
@@ -678,7 +673,6 @@ get_database_list(void)
 	Relation	rel;
 	TableScanDesc scan;
 	HeapTuple	tup;
-	MemoryContext oldcxt;
 	ScanKeyData key;
 
 	/* Start a transaction to access pg_database */
@@ -697,6 +691,7 @@ get_database_list(void)
 
 	while (HeapTupleIsValid(tup = heap_getnext(scan, ForwardScanDirection)))
 	{
+		MemoryContext oldcxt;
 		PTDatabaseInfo *dbinfo;
 		int64		datsize;
 		Form_pg_database pgdatabase = (Form_pg_database) GETSTRUCT(tup);
@@ -705,11 +700,11 @@ get_database_list(void)
 
 		/* Switch to our memory context instead of the transaction one */
 		oldcxt = MemoryContextSwitchTo(pt_cxt);
-		dbinfo = (PTDatabaseInfo *) palloc(sizeof(PTDatabaseInfo));
+		dbinfo = palloc_object(PTDatabaseInfo);
 
 		/* Fill in the structure */
 		dbinfo->datid = pgdatabase->oid;
-		strncpy(dbinfo->datname, NameStr(pgdatabase->datname), sizeof(dbinfo->datname));
+		strlcpy(dbinfo->datname, NameStr(pgdatabase->datname), sizeof(dbinfo->datname));
 		dbinfo->datsize = datsize;
 
 		/* Add to the list */
@@ -739,7 +734,6 @@ get_extensions_list(PTDatabaseInfo *dbinfo, MemoryContext cxt)
 	Relation	rel;
 	TableScanDesc scan;
 	HeapTuple	tup;
-	MemoryContext oldcxt;
 
 	Assert(dbinfo);
 
@@ -752,16 +746,17 @@ get_extensions_list(PTDatabaseInfo *dbinfo, MemoryContext cxt)
 
 	while (HeapTupleIsValid(tup = heap_getnext(scan, ForwardScanDirection)))
 	{
+		MemoryContext oldcxt;
 		PTExtensionInfo *extinfo;
 		Form_pg_extension extform = (Form_pg_extension) GETSTRUCT(tup);
 
 		/* Switch to the given memory context */
 		oldcxt = MemoryContextSwitchTo(cxt);
-		extinfo = (PTExtensionInfo *) palloc(sizeof(PTExtensionInfo));
+		extinfo = palloc_object(PTExtensionInfo);
 
 		/* Fill in the structure */
 		extinfo->db_data = dbinfo;
-		strncpy(extinfo->extname, NameStr(extform->extname), sizeof(extinfo->extname));
+		strlcpy(extinfo->extname, NameStr(extform->extname), sizeof(extinfo->extname));
 
 		/* Add to the list */
 		extlist = lappend(extlist, extinfo);
@@ -859,10 +854,6 @@ percona_pg_telemetry_main(Datum main_arg)
 	int			rc = 0;
 	List	   *dblist = NIL;
 	ListCell   *lc = NULL;
-	FILE	   *fp;
-	char		str[2048] = {0};
-	char		buf[4096] = {0};
-	size_t		buf_size = sizeof(buf);
 	bool		first_time = true;
 
 	/* Setup signal callbacks */
@@ -894,6 +885,10 @@ percona_pg_telemetry_main(Datum main_arg)
 	/* Should never really terminate unless... */
 	while (!sigterm_recvd && ptss->error_code == PT_SUCCESS)
 	{
+		FILE	   *fp;
+		char		buf[4096] = {0};
+		size_t		buf_size = sizeof(buf);
+
 		/* Don't sleep the first time */
 		if (first_time == false)
 		{
@@ -927,7 +922,7 @@ percona_pg_telemetry_main(Datum main_arg)
 		 */
 		if (dblist == NIL && (rc & WL_TIMEOUT || first_time))
 		{
-			char		temp_buff[100];
+			char		str[2048] = {0};
 
 			/* Data collection will start now */
 			first_time = false;
@@ -959,8 +954,8 @@ percona_pg_telemetry_main(Datum main_arg)
 			write_telemetry_file(fp, buf);
 
 			/* Construct and initiate the active extensions array block. */
-			pg_snprintf(temp_buff, sizeof(temp_buff), "%d", list_length(dblist));
-			construct_json_block(buf, buf_size, "databases_count", temp_buff, PT_JSON_KEY_VALUE, &ptss->json_file_indent);
+			pg_snprintf(str, sizeof(str), "%d", list_length(dblist));
+			construct_json_block(buf, buf_size, "databases_count", str, PT_JSON_KEY_VALUE, &ptss->json_file_indent);
 			write_telemetry_file(fp, buf);
 
 			/* Let's close the file now so that processes may add their stuff. */
