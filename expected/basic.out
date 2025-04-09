@@ -23,7 +23,7 @@ WHERE   name LIKE 'percona_pg_telemetry.%';
 SELECT  percona_pg_telemetry_version();
  percona_pg_telemetry_version 
 ------------------------------
- 1.0
+ 1.1
 (1 row)
 
 SELECT  regexp_replace(regexp_replace(latest_output_filename, '\d{11,}', '<INSTANCE ID>', 'g'), '\d{6,}', '<TIMESTAMP>', 'g') AS latest_output_filename

@@ -59,7 +59,7 @@
 PG_MODULE_MAGIC;
 
 /* General defines */
-#define PT_BUILD_VERSION    "1.0"
+#define PT_BUILD_VERSION    "1.1"
 #define PT_FILE_MODE        (S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH)
 
 /* Init and exported functions */
