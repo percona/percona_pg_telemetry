@@ -1,7 +1,9 @@
 name: Feature Request
 description: Suggest an idea for this project
 labels: ["feature"]
-assignees: []
+assignees:
+  - artemgavrilov
+  - jeltz
 body:
   - type: markdown
     attributes:
