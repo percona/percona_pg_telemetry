@@ -22,8 +22,9 @@
 #include "access/tableam.h"
 #include "commands/dbcommands.h"
 #include "catalog/namespace.h"
-#include "catalog/pg_extension.h"
+#include "catalog/pg_attribute.h"
 #include "catalog/pg_database.h"
+#include "catalog/pg_extension.h"
 #include "catalog/pg_namespace_d.h"
 #include "catalog/pg_type_d.h"
 #include "executor/spi.h"
@@ -635,9 +636,17 @@ write_pg_settings(void)
 
 				char	   *value = (str == NULL || str[0] == '\0') ? null_value : str;
 
+				Form_pg_attribute attr;
+
+#if PG_VERSION_NUM < 180000
+				attr = &tuptable->tupdesc->attrs[col_count - 1];
+#else
+				attr = TupleDescAttr(tuptable->tupdesc, col_count - 1);
+#endif
+
 				flags = (col_count == tuptable->tupdesc->natts) ? (PT_JSON_KEY_VALUE | PT_JSON_LAST_ELEMENT) : PT_JSON_KEY_VALUE;
 
-				construct_json_block(buf, buf_size, NameStr(tuptable->tupdesc->attrs[col_count - 1].attname),
+				construct_json_block(buf, buf_size, NameStr(attr->attname),
 									 value, flags, &ptss->json_file_indent);
 				write_telemetry_file(fp, buf);
 			}
