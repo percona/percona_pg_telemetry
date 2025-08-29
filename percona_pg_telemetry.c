@@ -44,9 +44,7 @@
 #include "percona_pg_telemetry.h"
 #include "pt_json.h"
 
-#if PG_VERSION_NUM >= 130000
 #include "postmaster/interrupt.h"
-#endif
 #if PG_VERSION_NUM >= 140000
 #include "utils/backend_status.h"
 #include "utils/wait_event.h"
@@ -88,12 +86,7 @@ static long server_uptime(void);
 static void load_telemetry_files(void);
 static char *generate_filename(char *filename);
 static bool validate_dir(char *folder_path);
-
-#if PG_VERSION_NUM >= 130000
 static int	compare_file_names(const ListCell *a, const ListCell *b);
-#else
-static int	compare_file_names(const void *a, const void *b);
-#endif
 
 /* Database information collection and writing to file */
 static void write_pg_settings(void);
@@ -279,11 +272,7 @@ load_telemetry_files(void)
 		}
 	}
 
-#if PG_VERSION_NUM >= 130000
 	list_sort(files_list, compare_file_names);
-#else
-	files_list = list_qsort(files_list, compare_file_names);
-#endif
 
 	foreach(lc, files_list)
 	{
@@ -296,8 +285,6 @@ load_telemetry_files(void)
 	FreeDir(d);
 }
 
-
-#if PG_VERSION_NUM >= 130000
 static int
 compare_file_names(const ListCell *a, const ListCell *b)
 {
@@ -306,17 +293,6 @@ compare_file_names(const ListCell *a, const ListCell *b)
 
 	return strcmp(fna, fnb);
 }
-
-#else
-static int
-compare_file_names(const void *a, const void *b)
-{
-	char	   *fna = (char *) lfirst(*(ListCell **) a);
-	char	   *fnb = (char *) lfirst(*(ListCell **) b);
-
-	return strcmp(fna, fnb);
-}
-#endif
 
 /*
  * telemetry_path
@@ -859,11 +835,7 @@ percona_pg_telemetry_main(Datum main_arg)
 
 	/* Setup signal callbacks */
 	pqsignal(SIGTERM, pt_sigterm);
-#if PG_VERSION_NUM >= 130000
 	pqsignal(SIGHUP, SignalHandlerForConfigReload);
-#else
-	pqsignal(SIGHUP, PostgresSigHupHandler);
-#endif
 
 	/* We can now receive signals */
 	BackgroundWorkerUnblockSignals();
@@ -973,11 +945,7 @@ percona_pg_telemetry_main(Datum main_arg)
 			BgwHandleStatus status;
 
 			/* First or the next cell */
-#if PG_VERSION_NUM >= 130000
 			lc = (lc) ? lnext(dblist, lc) : list_head(dblist);
-#else
-			lc = (lc) ? lnext(lc) : list_head(dblist);
-#endif
 
 			ptss->first_db_entry = (lc == list_head(dblist));
 

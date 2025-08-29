@@ -1,4 +1,3 @@
-[![postgresql-12-build](https://github.com/percona/percona_pg_telemetry/actions/workflows/postgresql-12-build.yml/badge.svg)](https://github.com/Percona-Lab/percona_pg_telemetry/actions/workflows/postgresql-12-build.yml)
 [![postgresql-13-build](https://github.com/percona/percona_pg_telemetry/actions/workflows/postgresql-13-build.yml/badge.svg)](https://github.com/Percona-Lab/percona_pg_telemetry/actions/workflows/postgresql-13-build.yml)
 [![postgresql-14-build](https://github.com/percona/percona_pg_telemetry/actions/workflows/postgresql-14-build.yml/badge.svg)](https://github.com/Percona-Lab/percona_pg_telemetry/actions/workflows/postgresql-14-build.yml)
 [![postgresql-15-build](https://github.com/percona/percona_pg_telemetry/actions/workflows/postgresql-15-build.yml/badge.svg)](https://github.com/Percona-Lab/percona_pg_telemetry/actions/workflows/postgresql-15-build.yml)
