@@ -255,11 +255,6 @@ install_deps() {
         rm -f percona-release_latest.generic_all.deb
         percona-release enable ${PPG_REPO} testing
 
-        if [[ "${OS_NAME}" = "trixie" ]]; then
-            percona-release enable ${PPG_REPO} experimental
-        fi
-
-
         PKGLIST="percona-postgresql-common percona-postgresql-server-dev-all"
 
         # ---- using a community version of postgresql
