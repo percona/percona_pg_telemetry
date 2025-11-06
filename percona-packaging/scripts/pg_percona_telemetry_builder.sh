@@ -265,16 +265,12 @@ install_deps() {
 
         apt-get update
 
-        if [[ "${OS_NAME}" != "focal" ]]; then
-            LLVM_EXISTS=$(grep -c "apt.llvm.org" /etc/apt/sources.list)
-            if [ "${LLVM_EXISTS}" == 0 ]; then
-                wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key|sudo apt-key add -
-                echo "deb http://apt.llvm.org/${OS_NAME}/ llvm-toolchain-${OS_NAME}-7 main" >> /etc/apt/sources.list
-                echo "deb-src http://apt.llvm.org/${OS_NAME}/ llvm-toolchain-${OS_NAME}-7 main" >> /etc/apt/sources.list
-                apt-get update
-            fi
+        if [[ "${OS_NAME}" == "bullseye" ]]; then
+            DEBIAN_FRONTEND=noninteractive apt-get -y install software-properties-common
+            wget https://apt.llvm.org/llvm.sh
+            chmod +x llvm.sh
+            ./llvm.sh 14 bullseye
         fi
-
         PKGLIST+=" debconf debhelper clang devscripts dh-exec git wget libkrb5-dev libssl-dev"
         PKGLIST+=" build-essential debconf debhelper devscripts dh-exec git wget libxml-checker-perl"
         PKGLIST+=" libxml-libxml-perl libio-socket-ssl-perl libperl-dev libssl-dev libxml2-dev txt2man zlib1g-dev libpq-dev"
