@@ -1,4 +1,6 @@
 # Object files
+*.bc
+*.so
 *.o
 *.ko
 *.obj
