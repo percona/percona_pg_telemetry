@@ -8,6 +8,11 @@
 [![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/percona/percona_pg_telemetry/badge)](https://scorecard.dev/viewer/?uri=github.com/percona/percona_pg_telemetry)
 [![Forum](https://img.shields.io/badge/Forum-join-brightgreen)](https://forums.percona.com/)
 
+> [!CAUTION]
+> This extension has been deprecated and replaced with a backwards compatibility stub.
+>
+> No telemetry data will be gathered, it will not be maintained going forward and it should not be used in new deployments.
+
 # Percona Telemetry Extension for PostgreSQL
 
 Welcome to `percona_pg_telemetry` - extension for Percona telemetry data collection for PostgreSQL!
