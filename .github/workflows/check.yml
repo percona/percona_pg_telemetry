@@ -33,7 +33,7 @@ jobs:
         working-directory: src/percona_pg_telemetry
         run: |
           set -x
-          cppcheck --enable=all --inline-suppr --template='{file}:{line},{severity},{id},{message}' --error-exitcode=1 --suppress=missingIncludeSystem --suppress=missingInclude --suppress=unmatchedSuppression:percona_pg_telemetry.c --check-config .
+          cppcheck --enable=all --inline-suppr --template='{file}:{line},{severity},{id},{message}' --error-exitcode=1 --suppress=missingInclude --suppress=unmatchedSuppression:percona_pg_telemetry.c --check-config .
 
   format:
     name: Format

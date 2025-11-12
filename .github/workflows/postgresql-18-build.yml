@@ -59,7 +59,7 @@ jobs:
 
       - name: Run percona_pg_telemetry regression
         run: |
-          PT_DEBUG=1 make check
+          make check
         working-directory: postgres/contrib/percona_pg_telemetry
 
       - name: Upload logs on fail
