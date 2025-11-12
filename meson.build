@@ -1,5 +1,4 @@
 percona_pg_telemetry_sources = files(
-  'pt_json.c',
   'percona_pg_telemetry.c',
 )
 
@@ -30,8 +29,6 @@ tests += {
   'regress': {
     'sql': [
       'basic',
-      'debug_json',
-      'gucs',
     ],
     'regress_args': ['--temp-config', files('percona_pg_telemetry.conf')],
 
