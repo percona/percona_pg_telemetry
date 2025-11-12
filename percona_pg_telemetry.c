@@ -33,6 +33,8 @@ _PG_init(void)
 {
 	if (!process_shared_preload_libraries_in_progress)
 		return;
+
+	elog(NOTICE, "percona_pg_telemetry has been deprecated");
 }
 
 /*
