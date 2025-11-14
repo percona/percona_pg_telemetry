@@ -17,7 +17,7 @@
 PG_MODULE_MAGIC;
 
 /* General defines */
-#define PT_BUILD_VERSION    "1.1"
+#define PT_BUILD_VERSION    "1.2"
 
 /* Init and exported functions */
 void		_PG_init(void);

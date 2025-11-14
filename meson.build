@@ -18,7 +18,9 @@ contrib_targets += percona_pg_telemetry
 
 install_data(
   'percona_pg_telemetry.control',
-  'percona_pg_telemetry--1.1.sql',
+  'percona_pg_telemetry--1.0.sql',
+  'percona_pg_telemetry--1.0--1.1.sql',
+  'percona_pg_telemetry--1.1--1.2.sql',
   kwargs: contrib_data_args,
 )
 
