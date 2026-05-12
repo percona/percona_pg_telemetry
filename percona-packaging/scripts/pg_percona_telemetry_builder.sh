@@ -206,22 +206,12 @@ install_deps() {
         yum install -y https://repo.percona.com/yum/percona-release-latest.noarch.rpm
         percona-release enable ${PPG_REPO} testing
 
-        yum -y install git wget
+        yum -y install git wget llvm-devel clang-devel clang
         PKGLIST="percona-postgresql${PG_RELEASE}-devel"
 	if [ x"$RHEL" = x8 ]; then
             yum -y install python2-devel
-	    llvm_version=$(yum list --showduplicates llvm-devel | grep "17.0" | grep llvm | awk '{print $2}' | head -n 1)
-	    yum -y install llvm-devel-${llvm_version}
         else
-            yum -y install python-devel llvm-devel
-        fi
-        if [ x"$RHEL" = x8 ];
-        then
-	    clang_version=$(yum list --showduplicates clang-devel | grep "17.0" | grep clang | awk '{print $2}' | head -n 1)
-            yum install -y clang-devel-${clang_version} clang-${clang_version}
-            dnf module -y disable llvm-toolset
-        else
-            yum install -y clang-devel clang
+            yum -y install python-devel
         fi
         PKGLIST+=" git rpmdevtools vim wget"
         PKGLIST+=" perl binutils gcc gcc-c++"
