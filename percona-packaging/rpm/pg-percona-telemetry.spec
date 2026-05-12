@@ -68,7 +68,7 @@ exit 0
 
 
 %changelog
-* Tue Jul 21 2026 Surabhi Bhat <surabhi.bhat@percona.com> - 1.2.1-1
+* Tue Jul 21 2026 Surabhi Bhat <surabhi.bhat@percona.com> - 1.2.0-3
 - Drop hard dependency on percona-telemetry-agent. The extension has been a
   no-op stub since 1.2.0 and no longer writes to /usr/local/percona/telemetry/pg,
   so the agent, the percona-telemetry group, and the drop directory are no
