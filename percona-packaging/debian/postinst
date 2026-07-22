@@ -1,12 +1,11 @@
 #!/bin/sh
 
 #DEBHELPER#
-usermod -a -G percona-telemetry postgres
 
-mkdir /usr/local/percona/telemetry/pg
-chown postgres:percona-telemetry /usr/local/percona/telemetry/pg
-chmod 775 /usr/local/percona/telemetry/pg
-chmod g+s /usr/local/percona/telemetry/pg
-chmod u+s /usr/local/percona/telemetry/pg
+# Transitional cleanup: percona-pg-telemetry <= 1.1 managed this dir for the
+# telemetry-agent. The extension no longer uses it. Remove in a future release.
+if [ -d /usr/local/percona/telemetry/pg ] && [ -z "$(ls -A /usr/local/percona/telemetry/pg 2>/dev/null)" ]; then
+    rmdir /usr/local/percona/telemetry/pg 2>/dev/null || true
+fi
+
 exit 0
-

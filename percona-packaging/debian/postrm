@@ -22,15 +22,8 @@ fi
 
 case "$1" in
 	remove | purge)
-	set -e
-        PG_TELEMETRY=/usr/local/percona/telemetry/pg
-        if [ -d ${PG_TELEMETRY} ];
-        then
-                rm -rf ${PG_TELEMETRY}
-        fi
-
-	set +e
-
+	# The extension no longer owns /usr/local/percona/telemetry/pg.
+	# Leftover empty dirs from <= 1.1 are cleaned in postinst.
 	;;
 
 	upgrade | failed-upgrade | abort-install | abort-upgrade | disappear)

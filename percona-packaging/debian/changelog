@@ -1,3 +1,14 @@
+percona-pg-telemetry (1.2.1-1) unstable; urgency=medium
+
+  * Drop hard dependency on percona-telemetry-agent. The extension has been a
+    no-op stub since 1.2.0 and no longer writes to /usr/local/percona/telemetry/pg,
+    so the agent, the percona-telemetry group, and the drop directory are no
+    longer required.
+  * Drop postinst/postrm management of /usr/local/percona/telemetry/pg and of
+    postgres group membership in percona-telemetry.
+
+ -- Surabhi Bhat <surabhi.bhat@percona.com>  Tue, 21 Jul 2026 13:47:00 +0530
+
 percona-pg-telemetry (1.0.0-1) unstable; urgency=medium
 
   * Initial build.

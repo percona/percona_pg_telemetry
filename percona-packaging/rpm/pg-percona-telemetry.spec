@@ -11,7 +11,6 @@ License:        PostgreSQL
 Source0:        percona-pg-telemetry%{pgrel}-%{version}.tar.gz
 URL:            https://github.com/percona/percona_pg_telemetry
 BuildRequires:  percona-postgresql%{pgrel}-devel
-Requires:       percona-telemetry-agent
 Provides:       percona-pg-telemetry%{pgrel}
 Conflicts:      percona-pg-telemetry%{pgrel}
 Obsoletes:      percona-pg-telemetry%{pgrel} <= %{version}-%{release}
@@ -51,11 +50,12 @@ if [ $1 == 1 ]; then
 fi
 
 %post -n percona-pg-telemetry%{pgrel}
-usermod -a -G percona-telemetry postgres
-install -d -m 2775 -o postgres -g percona-telemetry /usr/local/percona/telemetry/pg
-
-%postun -n percona-pg-telemetry%{pgrel}
-rm -rf /usr/local/percona/telemetry/pg
+# Transitional cleanup: percona-pg-telemetry <= 1.1 managed this dir for the
+# telemetry-agent. The extension no longer uses it. Remove in a future release.
+if [ -d /usr/local/percona/telemetry/pg ] && [ -z "$(ls -A /usr/local/percona/telemetry/pg 2>/dev/null)" ]; then
+    rmdir /usr/local/percona/telemetry/pg 2>/dev/null || :
+fi
+exit 0
 
 %files
 %defattr(755,root,root,755)
@@ -68,5 +68,12 @@ rm -rf /usr/local/percona/telemetry/pg
 
 
 %changelog
+* Tue Jul 21 2026 Surabhi Bhat <surabhi.bhat@percona.com> - 1.2.1-1
+- Drop hard dependency on percona-telemetry-agent. The extension has been a
+  no-op stub since 1.2.0 and no longer writes to /usr/local/percona/telemetry/pg,
+  so the agent, the percona-telemetry group, and the drop directory are no
+  longer required.
+- Drop %post/%postun management of /usr/local/percona/telemetry/pg and of
+  postgres group membership in percona-telemetry.
 * Fri Apr 26 2024 Surabhi Bhat <surabhi.bhat@percona.com> - 1.0.0-1
 - Initial build
